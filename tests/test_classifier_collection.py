@@ -3,15 +3,13 @@ import unittest.mock as mock
 
 import numpy as np
 
-from smqtk.algorithms.classifier import ClassifierCollection
-from smqtk.exceptions import MissingLabelError
-from smqtk.representation.classification_element.memory \
-    import MemoryClassificationElement
-from smqtk.representation.descriptor_element.local_elements \
-    import DescriptorMemoryElement
+from smqtk_classifier import ClassifierCollection
+from smqtk_classifier.exceptions import MissingLabelError
+from smqtk_classifier.impls.classification_element.memory import MemoryClassificationElement
 
-from tests.algorithms.classifier.test_ClassifierAbstract \
-    import DummyClassifier
+from smqtk_descriptors.impls.descriptor_element.memory import DescriptorMemoryElement
+
+from tests.interfaces.test_classifier import DummyClassifier
 
 
 class TestClassifierCollection (unittest.TestCase):
@@ -99,15 +97,12 @@ class TestClassifierCollection (unittest.TestCase):
             ccol.get_config(),
             {
                 'a': {
-                    'tests.algorithms.classifier.test_ClassifierAbstract'
-                    '.DummyClassifier': {},
-                    'type': 'tests.algorithms.classifier'
-                            '.test_ClassifierAbstract.DummyClassifier'},
+                    'type': 'tests.interfaces.test_classifier.DummyClassifier',
+                    'tests.interfaces.test_classifier.DummyClassifier': {},
+                },
                 'b': {
-                    'tests.algorithms.classifier.test_ClassifierAbstract'
-                    '.DummyClassifier': {},
-                    'type': 'tests.algorithms.classifier'
-                            '.test_ClassifierAbstract.DummyClassifier'
+                    'type': 'tests.interfaces.test_classifier.DummyClassifier',
+                    'tests.interfaces.test_classifier.DummyClassifier': {},
                 }
             }
         )
@@ -126,23 +121,19 @@ class TestClassifierCollection (unittest.TestCase):
         })
         self.assertEqual(ccol._label_to_classifier, {})
 
-    @mock.patch('smqtk.algorithms.classifier.Classifier.get_impls')
+    @mock.patch('smqtk_classifier.interfaces.classifier.Classifier.get_impls')
     def test_from_config_with_content(self, m_get_impls):
         # Mocking implementation getter to only return the dummy
         # implementation.
         m_get_impls.side_effect = lambda: {DummyClassifier}
-        "tests.algorithms.classifier.test_ClassifierAbstract.DummyClassifier"
         ccol = ClassifierCollection.from_config({
             'a': {
-                'tests.algorithms.classifier.test_ClassifierAbstract'
-                '.DummyClassifier': {},
-                'type': 'tests.algorithms.classifier'
-                        '.test_ClassifierAbstract.DummyClassifier'},
+                'type': 'tests.interfaces.test_classifier.DummyClassifier',
+                'tests.interfaces.test_classifier.DummyClassifier': {},
+            },
             'b': {
-                'tests.algorithms.classifier.test_ClassifierAbstract'
-                '.DummyClassifier': {},
-                'type': 'tests.algorithms.classifier'
-                        '.test_ClassifierAbstract.DummyClassifier'
+                'type': 'tests.interfaces.test_classifier.DummyClassifier',
+                'tests.interfaces.test_classifier.DummyClassifier': {},
             },
         })
         self.assertEqual(

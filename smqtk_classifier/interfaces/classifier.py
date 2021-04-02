@@ -1,17 +1,22 @@
 import abc
 from collections import deque
 import itertools
+import logging
 from typing import Deque, List, Optional, Tuple
 
 import numpy as np
 
-from smqtk.algorithms import SmqtkAlgorithm
-from smqtk.representation import ClassificationElement, DescriptorElement
+from smqtk_core import Plugfigurable
+from smqtk_classifier import ClassificationElement
+from smqtk_descriptors import DescriptorElement
 
-from ._defaults import DFLT_CLASSIFIER_FACTORY
+from smqtk_classifier._defaults import DFLT_CLASSIFIER_FACTORY
 
 
-class Classifier (SmqtkAlgorithm):
+LOG = logging.getLogger(__name__)
+
+
+class Classifier (Plugfigurable):
     """
     Interface for algorithms that classify input descriptors into discrete
     labels and/or label confidences.
@@ -202,11 +207,10 @@ class Classifier (SmqtkAlgorithm):
             the DescriptorElement it was computed from.
         :rtype: collections.abc.Iterator[smqtk.representation.ClassificationElement]
         """
-        log_debug = self._log.debug
+        log_debug = LOG.debug
 
         if d_elem_batch <= 0:
-            self._log.warning("Descriptor element batching value <= 0, "
-                              "defaulting to using value of 1.")
+            LOG.warning("Descriptor element batching value <= 0, defaulting to using value of 1.")
             d_elem_batch = 1
 
         # Queue populated by ``iter_tocompute_arrays`` with
@@ -243,6 +247,9 @@ class Classifier (SmqtkAlgorithm):
             # returned by the iterator
             de_batch_list = \
                 list(itertools.islice(descr_iterator, d_elem_batch))
+            # Fully qualified path to this classifier implementation type. This
+            # should be unique among concrete classifier implementations.
+            self_name = f"{self.__module__}.{self.__class__.__name__}"
             while de_batch_list:
                 # Get vectors from batch using implementation-level batch
                 # aggregation methods where applicable.
@@ -255,7 +262,7 @@ class Classifier (SmqtkAlgorithm):
                         raise ValueError("Encountered DescriptorElement with "
                                          "no vector stored! (UID=`{}`)"
                                          .format(d_uid))
-                    c_elem_ = factory.new_classification(self.name, d_uid)
+                    c_elem_ = factory.new_classification(self_name, d_uid)
                     already_computed = \
                         not overwrite and c_elem_.has_classifications()
                     elem_and_status_q.append((c_elem_, already_computed))

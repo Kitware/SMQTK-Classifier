@@ -1,10 +1,8 @@
 import abc
+from typing import Hashable, Optional, Tuple
 
-import six
-
-from smqtk.exceptions import NoClassificationError
-from smqtk.representation import SmqtkRepresentation
-from smqtk.utils.plugin import Pluggable
+from smqtk_core import Plugfigurable
+from smqtk_classifier.exceptions import NoClassificationError
 
 
 __author__ = "paul.tunison@kitware.com"
@@ -13,7 +11,7 @@ __author__ = "paul.tunison@kitware.com"
 NEG_INF = float('-inf')
 
 
-class ClassificationElement(SmqtkRepresentation, Pluggable):
+class ClassificationElement(Plugfigurable):
     """
     Classification result encapsulation.
 
@@ -184,9 +182,8 @@ class ClassificationElement(SmqtkRepresentation, Pluggable):
 
         """
         # Temp (label, confidence) tuple
-        #: :type: (collections.abc.Hashable, float)
-        m = (None, NEG_INF)
-        for i in six.iteritems(self.get_classification()):
+        m: Tuple[Optional[Hashable], float] = (None, NEG_INF)
+        for i in self.get_classification().items():
             if i[1] > m[1]:
                 m = i
         if m[0] is None:

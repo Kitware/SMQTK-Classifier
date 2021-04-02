@@ -1,13 +1,11 @@
-from __future__ import division, print_function
-
 import pickle
 import unittest
-
 import unittest.mock as mock
+
 import pytest
 
-from smqtk.exceptions import NoClassificationError
-from smqtk.representation import ClassificationElement
+from smqtk_classifier import ClassificationElement
+from smqtk_classifier.exceptions import NoClassificationError
 
 
 class DummyCEImpl (ClassificationElement):
@@ -241,7 +239,7 @@ class TestClassificationElementAbstract (unittest.TestCase):
         assert 'type_name' not in default
         assert 'uuid' not in default
 
-    @mock.patch('smqtk.utils.configuration.Configurable.from_config')
+    @mock.patch('smqtk_core.configuration.Configurable.from_config')
     def test_from_config_mdFalse(self, m_confFromConfig):
         """
         Test that ``from_config`` appropriately passes runtime provided
@@ -266,7 +264,7 @@ class TestClassificationElementAbstract (unittest.TestCase):
                                                  merge_default=False)
         assert r == expected_return
 
-    @mock.patch('smqtk.utils.configuration.Configurable.from_config')
+    @mock.patch('smqtk_core.configuration.Configurable.from_config')
     def test_from_config_mdTrue(self, m_confFromConfig):
         """
         Test that ``from_config`` appropriately passes runtime provided
@@ -291,7 +289,7 @@ class TestClassificationElementAbstract (unittest.TestCase):
                                                  merge_default=True)
         assert r == expected_return
 
-    @mock.patch('smqtk.utils.configuration.Configurable.from_config')
+    @mock.patch('smqtk_core.configuration.Configurable.from_config')
     def test_from_config_preseeded_mdFalse(self, m_confFromConfig):
         """
         Test that parameters provided at runtime prevails over any provided
@@ -318,7 +316,7 @@ class TestClassificationElementAbstract (unittest.TestCase):
                                                  merge_default=False)
         assert r == expected_return
 
-    @mock.patch('smqtk.utils.configuration.Configurable.from_config')
+    @mock.patch('smqtk_core.configuration.Configurable.from_config')
     def test_from_config_preseeded_mdTrue(self, m_confFromConfig):
         """
         Test that parameters provided at runtime prevails over any provided

@@ -1,11 +1,10 @@
 import os
 import pickle
 
+from smqtk_core.configuration import configuration_test_helper
 import unittest.mock as mock
 
-from smqtk.representation.classification_element.file \
-    import FileClassificationElement
-from smqtk.utils.configuration import configuration_test_helper
+from smqtk_classifier.impls.classification_element.file import FileClassificationElement
 
 
 def test_is_usable():

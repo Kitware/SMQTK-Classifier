@@ -1,14 +1,17 @@
 import unittest
 
+from smqtk_core.configuration import configuration_test_helper
+from smqtk_descriptors.impls.descriptor_element.memory import DescriptorMemoryElement
 import numpy
+import pytest
 
-from smqtk.algorithms.classifier.sklearn_logistic_regression import \
-    SkLearnLogisticRegression
-from smqtk.representation.descriptor_element.local_elements import \
-    DescriptorMemoryElement
-from smqtk.utils.configuration import configuration_test_helper
+from smqtk_classifier.impls.supervised.sklearn_logistic_regression import SkLearnLogisticRegression
 
 
+@pytest.mark.skipif(
+    not SkLearnLogisticRegression.is_usable(),
+    reason="SkLearnLogisticRegression does not report as usable."
+)
 class TestSklearnLogisticRegressionClassifier (unittest.TestCase):
     """
     Tests for the SkLearnLogisticRegression plugin implementation.

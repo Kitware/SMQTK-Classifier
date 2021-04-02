@@ -1,10 +1,7 @@
 from threading import RLock
 
-from smqtk.exceptions import NoClassificationError
-from smqtk.representation.classification_element import ClassificationElement
-
-
-__author__ = "paul.tunison@kitware.com"
+from smqtk_classifier.exceptions import NoClassificationError
+from smqtk_classifier.interfaces.classification_element import ClassificationElement
 
 
 class MemoryClassificationElement (ClassificationElement):
@@ -57,41 +54,13 @@ class MemoryClassificationElement (ClassificationElement):
             self._c = state['c']
 
     def get_config(self):
-        """
-        Return a JSON-compliant dictionary that could be passed to this class's
-        ``from_config`` method to produce an instance with identical
-        configuration.
-
-        :return: JSON type compliant configuration dictionary.
-        :rtype: dict
-
-        """
         return {}
 
     def has_classifications(self):
-        """
-        :return: If this element has classification information set.
-        :rtype: bool
-        """
         with self._c_lock:
             return bool(self._c)
 
     def get_classification(self):
-        """
-        Get classification result map, returning a label-to-confidence dict.
-
-        We do no place any guarantees on label value types as they may be
-        represented in various forms (integers, strings, etc.).
-
-        Confidence values are in the [0,1] range.
-
-        :raises NoClassificationError: No classification labels/confidences yet
-            set.
-
-        :return: Label-to-confidence dictionary.
-        :rtype: dict[collections.abc.Hashable, float]
-
-        """
         with self._c_lock:
             if self._c:
                 return self._c
@@ -99,19 +68,6 @@ class MemoryClassificationElement (ClassificationElement):
                 raise NoClassificationError("No classification labels/values")
 
     def set_classification(self, m=None, **kwds):
-        """
-        Set the whole classification map for this element. This will strictly
-        overwrite the entire label-confidence mapping (vs. updating it)
-
-        Label/confidence values may either be provided via keyword arguments or
-        by providing a dictionary mapping labels to confidence values.
-
-        :param m: New labels-to-confidence mapping to set.
-        :type m: dict[collections.abc.Hashable, float]
-
-        :raises ValueError: The given label-confidence map was empty.
-
-        """
         m = super(MemoryClassificationElement, self)\
             .set_classification(m, **kwds)
         with self._c_lock:

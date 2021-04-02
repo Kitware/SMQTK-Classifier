@@ -1,19 +1,18 @@
 import pickle
-import unittest
-
-import unittest.mock as mock
 import multiprocessing
 import multiprocessing.pool
+import unittest
+import unittest.mock as mock
+
+from smqtk_core.configuration import configuration_test_helper
+from smqtk_descriptors import DescriptorElementFactory
+from smqtk_descriptors.impls.descriptor_element.memory import DescriptorMemoryElement
+from smqtk_descriptors.utils import parallel_map
 import numpy
 import pytest
 
-from smqtk.algorithms.classifier import Classifier
-from smqtk.algorithms.classifier.libsvm import LibSvmClassifier
-from smqtk.representation import DescriptorElementFactory
-from smqtk.representation.descriptor_element.local_elements import \
-    DescriptorMemoryElement
-from smqtk.utils.configuration import configuration_test_helper
-from smqtk.utils.parallel import parallel_map
+from smqtk_classifier import Classifier
+from smqtk_classifier.impls.supervised.libsvm import LibSvmClassifier
 
 
 @pytest.mark.skipif(not LibSvmClassifier.is_usable(),
@@ -23,8 +22,7 @@ class TestLibSvmClassifier (unittest.TestCase):
     def test_impl_findable(self):
         self.assertIn(LibSvmClassifier, Classifier.get_impls())
 
-    @mock.patch('smqtk.algorithms.classifier.libsvm.LibSvmClassifier'
-                '._reload_model')
+    @mock.patch('smqtk_classifier.impls.supervised.libsvm.LibSvmClassifier._reload_model')
     def test_configuration(self, m_inst_load_model):
         """ Test configuration handling for this implementation.
 

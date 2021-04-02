@@ -1,14 +1,13 @@
+import pickle
 import threading
 import unittest
 import unittest.mock as mock
 
+from smqtk_core.configuration import configuration_test_helper
 import pytest
-from six.moves import cPickle
 
-from smqtk.exceptions import NoClassificationError
-from smqtk.representation.classification_element.memory \
-    import MemoryClassificationElement
-from smqtk.utils.configuration import configuration_test_helper
+from smqtk_classifier.exceptions import NoClassificationError
+from smqtk_classifier.impls.classification_element.memory import MemoryClassificationElement
 
 
 class TestMemoryClassificationElement (unittest.TestCase):
@@ -52,7 +51,7 @@ class TestMemoryClassificationElement (unittest.TestCase):
 
         expected_map = None
         assert e._c == expected_map
-        e2 = cPickle.loads(cPickle.dumps(e))
+        e2 = pickle.loads(pickle.dumps(e))
         assert e2._c == expected_map
 
     def test_serialization_nonempty(self):
@@ -61,7 +60,7 @@ class TestMemoryClassificationElement (unittest.TestCase):
 
         expected_map = {'a': 0, 'b': 1}
         assert e._c == expected_map
-        e2 = cPickle.loads(cPickle.dumps(e))
+        e2 = pickle.loads(pickle.dumps(e))
         assert e2._c == expected_map
 
     def test_get_config_empty(self):

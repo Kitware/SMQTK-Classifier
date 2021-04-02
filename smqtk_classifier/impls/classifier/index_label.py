@@ -1,7 +1,6 @@
-from six.moves import zip
+from smqtk_dataprovider import from_uri
 
-from smqtk.algorithms import Classifier
-from smqtk.representation.data_element import from_uri
+from smqtk_classifier.interfaces.classifier import Classifier
 
 
 class IndexLabelClassifier (Classifier):
@@ -35,28 +34,11 @@ class IndexLabelClassifier (Classifier):
                              from_uri(index_to_label_uri).to_buffered_reader()]
 
     def get_config(self):
-        """
-        Return a JSON-compliant dictionary that could be passed to this class's
-        ``from_config`` method to produce an instance with identical
-        configuration.
-
-        :return: JSON type compliant configuration dictionary.
-        :rtype: dict
-
-        """
         return {
             "index_to_label_uri": self.index_to_label_uri,
         }
 
     def get_labels(self):
-        """
-        Get a copy of the sequence of class labels that this classifier can
-        classify descriptors into.
-
-        :return: Sequence of possible classifier labels.
-        :rtype: collections.abc.Sequence[str]
-
-        """
         # copying container
         return list(self.label_vector)
 

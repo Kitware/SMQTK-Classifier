@@ -5,20 +5,36 @@ import logging
 import os
 import pickle
 import tempfile
+import warnings
 
 import numpy
 import numpy.linalg
-import scipy.stats
 
-from smqtk.algorithms import SupervisedClassifier
-from smqtk.representation import DescriptorElement
-from smqtk.representation.data_element import from_uri
-from smqtk.utils.parallel import parallel_map
+from smqtk_dataprovider import from_uri
+from smqtk_descriptors import DescriptorElement
+from smqtk_descriptors.utils import parallel_map
+
+from smqtk_classifier.interfaces.supervised import SupervisedClassifier
+
+
+LOG = logging.getLogger(__name__)
+
+
+try:
+    import scipy.stats
+except ImportError:
+    warnings.warn(
+        "scipy.stats not importable: LibSvmClassifier will not be usable."
+    )
+    scipy = None
 
 try:
     import svm  # type: ignore
     import svmutil  # type: ignore
 except ImportError:
+    warnings.warn(
+        "svm/svmutil not importable: LibSvmClassifier will not be usable."
+    )
     svm = None
     svmutil = None
 
@@ -35,17 +51,7 @@ class LibSvmClassifier (SupervisedClassifier):
 
     @classmethod
     def is_usable(cls):
-        """
-        Check whether this class is available for use.
-
-        This implementation required the libSVM python bindings to be installed
-        and loadable.
-
-        :return: Boolean determination of whether this implementation is usable.
-        :rtype: bool
-
-        """
-        return None not in {svm, svmutil}
+        return None not in {scipy, svm, svmutil}
 
     # noinspection PyDefaultArgument
     def __init__(self, svm_model_uri=None, svm_label_map_uri=None,
@@ -127,7 +133,7 @@ class LibSvmClassifier (SupervisedClassifier):
                                     self.svm_label_map_uri is not None):
             return self.get_config()
         else:
-            self._log.debug("Saving model to temp file for pickling")
+            LOG.debug("Saving model to temp file for pickling")
             fd, fp = tempfile.mkstemp()
             try:
                 os.close(fd)
@@ -224,15 +230,6 @@ class LibSvmClassifier (SupervisedClassifier):
         return v
 
     def get_config(self):
-        """
-        Return a JSON-compliant dictionary that could be passed to this class's
-        ``from_config`` method to produce an instance with identical
-        configuration.
-
-        :return: JSON type compliant configuration dictionary.
-        :rtype: dict
-
-        """
         return {
             "svm_model_uri": self.svm_model_uri,
             "svm_label_map_uri": self.svm_label_map_uri,
@@ -250,38 +247,17 @@ class LibSvmClassifier (SupervisedClassifier):
         return None not in (self.svm_model, self.svm_label_map)
 
     def _train(self, class_examples, **extra_params):
-        """
-        Internal method that trains the classifier implementation.
-
-        This method is called after checking that there is not already a model
-        trained, thus it can be assumed that no model currently exists.
-
-        The class labels will have already been checked before entering this
-        method, so it can be assumed that the ``class_examples`` will container
-        at least two classes.
-
-        :param class_examples: Dictionary mapping class labels to iterables of
-            DescriptorElement training examples.
-        :type class_examples: dict[collections.abc.Hashable,
-                 collections.abc.Iterable[smqtk.representation.DescriptorElement]]
-
-        :param extra_params: Dictionary with extra parameters for training.
-            This is not used by this implementation.
-        :type extra_params: None | dict[basestring, object]
-
-        """
-
         # Offset from 0 for positive class labels to use
         # - not using label of 0 because we think libSVM wants positive labels
         CLASS_LABEL_OFFSET = 1
 
         # Stuff for debug reporting
         param_debug = {'-q': ''}
-        if self._log.getEffectiveLevel() <= logging.DEBUG:
+        if LOG.getEffectiveLevel() <= logging.DEBUG:
             param_debug = {}
 
         # Form libSVM problem input values
-        self._log.debug("Formatting problem input")
+        LOG.debug("Formatting problem input")
         train_labels = []
         train_vectors = []
         train_group_sizes = []  # number of examples per class
@@ -291,11 +267,11 @@ class LibSvmClassifier (SupervisedClassifier):
             # Map integer SVM label to semantic label
             self.svm_label_map[i] = l
 
-            self._log.debug('-- class %d (%s)', i, l)
+            LOG.debug('-- class %d (%s)', i, l)
             # requires a sequence, so making the iterable ``g`` a tuple
             g = class_examples[l]
             if not isinstance(g, collections.abc.Sequence):
-                self._log.debug('   (expanding iterable into sequence)')
+                LOG.debug('   (expanding iterable into sequence)')
                 g = tuple(g)
 
             train_group_sizes.append(float(len(g)))
@@ -310,7 +286,7 @@ class LibSvmClassifier (SupervisedClassifier):
             "being sent to libSVM (%d != %d)" \
             % (len(train_labels), len(train_vectors))
 
-        self._log.debug("Forming train params")
+        LOG.debug("Forming train params")
         #: :type: dict
         params = deepcopy(self.train_params)
         params.update(param_debug)
@@ -323,27 +299,24 @@ class LibSvmClassifier (SupervisedClassifier):
             for i, n in enumerate(train_group_sizes, CLASS_LABEL_OFFSET):
                 w = gmean / n
                 params['-w' + str(i)] = w
-                self._log.debug("-- class '%s' weight: %s",
-                                self.svm_label_map[i], w)
+                LOG.debug("-- class '%s' weight: %s", self.svm_label_map[i], w)
 
-        self._log.debug("Making parameters obj")
+        LOG.debug("Making parameters obj")
         svm_params = svmutil.svm_parameter(self._gen_param_string(params))
-        self._log.debug("Creating SVM problem")
+        LOG.debug("Creating SVM problem")
         svm_problem = svm.svm_problem(train_labels, train_vectors)
         del train_vectors
-        self._log.debug("Training SVM model")
+        LOG.debug("Training SVM model")
         self.svm_model = svmutil.svm_train(svm_problem, svm_params)
-        self._log.debug("Training SVM model -- Done")
+        LOG.debug("Training SVM model -- Done")
 
         if self.svm_label_map_elem and self.svm_label_map_elem.writable():
-            self._log.debug("saving labels to element (%s)",
-                            self.svm_label_map_elem)
+            LOG.debug("saving labels to element (%s)", self.svm_label_map_elem)
             self.svm_label_map_elem.set_bytes(
                 pickle.dumps(self.svm_label_map, -1)
             )
         if self.svm_model_elem and self.svm_model_elem.writable():
-            self._log.debug("saving model to element (%s)",
-                            self.svm_model_elem)
+            LOG.debug("saving model to element (%s)", self.svm_model_elem)
             # LibSvm I/O only works with filepaths, thus the need for an
             # intermediate temporary file.
             fd, fp = tempfile.mkstemp()
@@ -360,16 +333,6 @@ class LibSvmClassifier (SupervisedClassifier):
                 os.remove(fp)
 
     def get_labels(self):
-        """
-        Get the sequence of class labels that this classifier can classify
-        descriptors into. This includes the negative label.
-
-        :return: Sequence of possible classifier labels.
-        :rtype: collections.abc.Sequence[collections.abc.Hashable]
-
-        :raises RuntimeError: No model loaded.
-
-        """
         if not self.has_model():
             raise RuntimeError("No model loaded")
         return list(self.svm_label_map.values())
@@ -448,8 +411,3 @@ class LibSvmClassifier (SupervisedClassifier):
                 return parallel_map(single_label, vec_mat,
                                     cores=n_jobs,
                                     use_multiprocessing=True)
-
-
-# Explicitly declare to avoid silly warning about ignoring parent abstract
-# class.
-CLASSIFIER_CLASS = LibSvmClassifier
