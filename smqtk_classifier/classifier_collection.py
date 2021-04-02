@@ -1,16 +1,20 @@
 import threading
 
-from smqtk.exceptions import MissingLabelError
-from smqtk.utils import SmqtkObject
-from smqtk.utils.configuration \
-    import Configurable, make_default_config, from_config_dict, to_config_dict
-from smqtk.utils.dict import merge_dict
+from smqtk_core.configuration import (
+    Configurable,
+    make_default_config,
+    from_config_dict,
+    to_config_dict
+)
+from smqtk_core.dict import merge_dict
+
+from smqtk_classifier.exceptions import MissingLabelError
 
 from ._defaults import DFLT_CLASSIFIER_FACTORY
-from ._interface_classifier import Classifier
+from .interfaces.classifier import Classifier
 
 
-class ClassifierCollection (SmqtkObject, Configurable):
+class ClassifierCollection (Configurable):
     """
     A collection of descriptively-labeled classifier instances for the purpose
     of applying all stored classifiers to one or more input descriptor

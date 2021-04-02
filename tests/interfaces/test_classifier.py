@@ -1,4 +1,3 @@
-from __future__ import division, print_function
 from typing import Generator
 import unittest
 import unittest.mock as mock
@@ -6,13 +5,8 @@ import unittest.mock as mock
 import numpy as np
 import pytest
 
-from smqtk.algorithms.classifier import Classifier
-from smqtk.representation import (
-    ClassificationElement,
-    ClassificationElementFactory,
-)
-from smqtk.representation.descriptor_element.local_elements import \
-    DescriptorMemoryElement
+from smqtk_descriptors.impls.descriptor_element.memory import DescriptorMemoryElement
+from smqtk_classifier import Classifier, ClassificationElement, ClassificationElementFactory
 
 
 class DummyClassifier (Classifier):
@@ -375,10 +369,10 @@ class TestClassifierAbstractClass (unittest.TestCase):
             lambda _, uid: exp_ce_list[uid]
 
         # batch default of 100 == 1 call
-        with mock.patch('smqtk.algorithms.classifier._interface_classifier.'
-                        'DescriptorElement.get_many_vectors',
-                        wraps=DescriptorMemoryElement.get_many_vectors)\
-                as m_DE_gmv:
+        with mock.patch(
+            'smqtk_classifier.interfaces.classifier.DescriptorElement.get_many_vectors',
+            wraps=DescriptorMemoryElement.get_many_vectors
+        ) as m_DE_gmv:
             act_ce_list = list(self.inst.classify_elements(d_elems,
                                                            factory=dummy_fact))
             assert act_ce_list == exp_ce_list
@@ -386,10 +380,10 @@ class TestClassifierAbstractClass (unittest.TestCase):
             m_DE_gmv.assert_called_with(d_elems)
 
         # batch of 1 == 29 calls
-        with mock.patch('smqtk.algorithms.classifier._interface_classifier.'
-                        'DescriptorElement.get_many_vectors',
-                        wraps=DescriptorMemoryElement.get_many_vectors)\
-                as m_DE_gmv:
+        with mock.patch(
+            'smqtk_classifier.interfaces.classifier.DescriptorElement.get_many_vectors',
+            wraps=DescriptorMemoryElement.get_many_vectors
+        ) as m_DE_gmv:
             act_ce_list = list(self.inst.classify_elements(d_elems,
                                                            factory=dummy_fact,
                                                            d_elem_batch=1))
@@ -399,10 +393,10 @@ class TestClassifierAbstractClass (unittest.TestCase):
                 m_DE_gmv.assert_any_call([de])
 
         # batch of 20 == 2 calls
-        with mock.patch('smqtk.algorithms.classifier._interface_classifier.'
-                        'DescriptorElement.get_many_vectors',
-                        wraps=DescriptorMemoryElement.get_many_vectors) \
-                as m_DE_gmv:
+        with mock.patch(
+            'smqtk_classifier.interfaces.classifier.DescriptorElement.get_many_vectors',
+            wraps=DescriptorMemoryElement.get_many_vectors
+        ) as m_DE_gmv:
             act_ce_list = list(self.inst.classify_elements(d_elems,
                                                            factory=dummy_fact,
                                                            d_elem_batch=20))

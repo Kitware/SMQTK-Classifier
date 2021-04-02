@@ -1,29 +1,26 @@
-from __future__ import division, print_function
 import os
 import unittest
 
+from smqtk_core.configuration import configuration_test_helper
 import numpy
-import six
-from six.moves import map
 import pytest
 
-from smqtk.algorithms.classifier import Classifier
-from smqtk.algorithms.classifier.index_label import IndexLabelClassifier
-from smqtk.utils.configuration import configuration_test_helper
+from smqtk_classifier import Classifier
+from smqtk_classifier.impls.classifier.index_label import IndexLabelClassifier
 
 from tests import TEST_DATA_DIR
 
 
 class TestIndexLabelClassifier (unittest.TestCase):
 
-    EXPECTED_LABEL_VEC = list(map(six.b, [
-        'label_1',
-        'label_2',
-        'negative',
-        'label_3',
-        'Kitware',
-        'label_4',
-    ]))
+    EXPECTED_LABEL_VEC = [
+        b'label_1',
+        b'label_2',
+        b'negative',
+        b'label_3',
+        b'Kitware',
+        b'label_4',
+    ]
 
     FILEPATH_TEST_LABELS = os.path.join(TEST_DATA_DIR, 'test_labels.txt')
 
@@ -59,12 +56,12 @@ class TestIndexLabelClassifier (unittest.TestCase):
     def test_classify_arrays(self):
         c = IndexLabelClassifier(self.FILEPATH_TEST_LABELS)
         c_expected = {
-            six.b('label_1'): 1,
-            six.b('label_2'): 2,
-            six.b('negative'): 3,
-            six.b('label_3'): 4,
-            six.b('Kitware'): 5,
-            six.b('label_4'): 6,
+            b'label_1': 1,
+            b'label_2': 2,
+            b'negative': 3,
+            b'label_3': 4,
+            b'Kitware': 5,
+            b'label_4': 6,
         }
 
         a = numpy.array([1, 2, 3, 4, 5, 6])

@@ -1,8 +1,23 @@
-import numpy as np
-from sklearn.linear_model import LogisticRegression
+import warnings
 
-from smqtk.algorithms import SupervisedClassifier
-from smqtk.representation import DescriptorElement
+import numpy as np
+from smqtk_descriptors import DescriptorElement
+
+from smqtk_classifier.interfaces.supervised import SupervisedClassifier
+
+
+try:
+    import sklearn
+    from sklearn.linear_model import LogisticRegression
+except ImportError:
+    warnings.warn(
+        "sklearn.linear_model.LogisticRegression was not importable: the "
+        "SkLearnLogisticRegression supervised classifier will not be usable."
+    )
+    sklearn = None
+
+    class LogisticRegression:
+        """ Stub """
 
 
 class SkLearnLogisticRegression (LogisticRegression, SupervisedClassifier):
@@ -16,8 +31,7 @@ class SkLearnLogisticRegression (LogisticRegression, SupervisedClassifier):
 
     @classmethod
     def is_usable(cls):
-        # scikit-learn is a dependency of SMQTK
-        return True
+        return sklearn is not None
 
     def get_config(self):
         return self.get_params()

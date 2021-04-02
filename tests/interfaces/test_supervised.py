@@ -1,6 +1,6 @@
 import unittest
 
-from smqtk.algorithms.classifier import SupervisedClassifier
+from smqtk_classifier import SupervisedClassifier
 
 
 class DummySupervisedClassifier (SupervisedClassifier):

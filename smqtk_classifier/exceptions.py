@@ -6,36 +6,6 @@ class NoClassificationError (Exception):
     """
 
 
-class NoDetectionError (Exception):
-    """
-    When a DetectionElement has no stored data (paired bounding box and classification
-    """
-
-
-class ReadOnlyError (Exception):
-    """
-    For when an attempt at modifying an immutable container is made.
-    """
-
-
-class NoUriResolutionError (Exception):
-    """
-    Standard exception thrown by base DataElement from_uri method when a
-    subclass does not implement URI resolution.
-    """
-
-
-class InvalidUriError (Exception):
-    """
-    An invalid URI was provided.
-    """
-
-    def __init__(self, uri_value, reason):
-        super(InvalidUriError, self).__init__(uri_value, reason)
-        self.uri = uri_value
-        self.reason = reason
-
-
 class MissingLabelError(Exception):
     """
     Raised by ClassifierCollection.classify when requested classifier labels

@@ -1,6 +1,5 @@
-from smqtk.representation import ClassificationElementFactory
-from smqtk.representation.classification_element.memory import \
-    MemoryClassificationElement
+from smqtk_classifier.classification_element_factory import ClassificationElementFactory
+from smqtk_classifier.impls.classification_element.memory import MemoryClassificationElement
 
 
 # Default classifier element factory for interfaces.

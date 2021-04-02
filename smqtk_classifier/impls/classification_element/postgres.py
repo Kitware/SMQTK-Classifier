@@ -1,17 +1,26 @@
-from six.moves import cPickle
+import logging
+import pickle
+import warnings
 
-from smqtk.exceptions import NoClassificationError
-from smqtk.representation import ClassificationElement
+# TODO: This should make use of the following:
+# from smqtk_dataprovider.utils.postgres import PsqlConnectionHelper
+
+from smqtk_classifier.exceptions import NoClassificationError
+from smqtk_classifier.interfaces.classification_element import ClassificationElement
+
+
+LOG = logging.getLogger(__name__)
 
 
 # Try to import required modules
 try:
     import psycopg2  # type: ignore
 except ImportError:
+    warnings.warn(
+        "psycopg2 not importable: PostgresClassificationElement will not be"
+        "usable."
+    )
     psycopg2 = None
-
-
-__author__ = "paul.tunison@kitware.com"
 
 
 class PostgresClassificationElement (ClassificationElement):
@@ -65,10 +74,7 @@ class PostgresClassificationElement (ClassificationElement):
 
     @classmethod
     def is_usable(cls):
-        if psycopg2 is None:
-            cls.get_logger().warning("Not usable. Requires psycopg2 module")
-            return False
-        return True
+        return psycopg2 is not None
 
     def __init__(self, type_name, uuid,
                  table_name='classifications',
@@ -232,31 +238,12 @@ class PostgresClassificationElement (ClassificationElement):
             cursor.execute(q_table_upsert)
 
     def has_classifications(self):
-        """
-        :return: If this element has classification information set.
-        :rtype: bool
-        """
         try:
             return bool(self.get_classification())
         except NoClassificationError:
             return False
 
     def get_classification(self):
-        """
-        Get classification result map, returning a label-to-confidence dict.
-
-        We do no place any guarantees on label value types as they may be
-        represented in various forms (integers, strings, etc.).
-
-        Confidence values are in the [0,1] range.
-
-        :raises NoClassificationError: No classification labels/confidences yet
-            set.
-
-        :return: Label-to-confidence dictionary.
-        :rtype: dict[collections.abc.Hashable, float]
-
-        """
         q_select = self.SELECT_TMPL.format(**dict(
             table_name=self.table_name,
             type_col=self.type_col,
@@ -283,7 +270,7 @@ class PostgresClassificationElement (ClassificationElement):
                                             % (self.type_name, str(self.uuid)))
             else:
                 b = r[0]
-                c = cPickle.loads(b)
+                c = pickle.loads(b)
                 return c
         except Exception:
             conn.rollback()
@@ -293,19 +280,6 @@ class PostgresClassificationElement (ClassificationElement):
             conn.close()
 
     def set_classification(self, m=None, **kwds):
-        """
-        Set the whole classification map for this element. This will strictly
-        overwrite the entire label-confidence mapping (vs. updating it)
-
-        Label/confidence values may either be provided via keyword arguments or
-        by providing a dictionary mapping labels to confidence values.
-
-        :param m: New labels-to-confidence mapping to set.
-        :type m: dict[collections.abc.Hashable, float]
-
-        :raises ValueError: The given label-confidence map was empty.
-
-        """
         m = super(PostgresClassificationElement, self)\
             .set_classification(m, **kwds)
 
@@ -317,7 +291,7 @@ class PostgresClassificationElement (ClassificationElement):
         })
         q_upsert_values = {
             "classification_val":
-                psycopg2.Binary(cPickle.dumps(m, self.pickle_protocol)),
+                psycopg2.Binary(pickle.dumps(m, self.pickle_protocol)),
             "type_val": self.type_name,
             "uuid_val": str(self.uuid),
         }

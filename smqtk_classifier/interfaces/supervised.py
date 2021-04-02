@@ -1,6 +1,6 @@
 import abc
 
-from ._interface_classifier import Classifier
+from .classifier import Classifier
 
 
 class SupervisedClassifier (Classifier):

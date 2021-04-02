@@ -1,12 +1,11 @@
+import pickle
 import os.path as osp
 
-from six.moves import cPickle
+from smqtk_dataprovider.utils.file import safe_create_dir
+from smqtk_dataprovider.utils.string import partition_string
 
-from smqtk.representation.classification_element import ClassificationElement
-
-from smqtk.exceptions import NoClassificationError
-from smqtk.utils.file import safe_create_dir
-from smqtk.utils.string import partition_string
+from smqtk_classifier.exceptions import NoClassificationError
+from smqtk_classifier.interfaces.classification_element import ClassificationElement
 
 
 class FileClassificationElement (ClassificationElement):
@@ -96,49 +95,17 @@ class FileClassificationElement (ClassificationElement):
         }
 
     def has_classifications(self):
-        """
-        :return: If this element has classification information set.
-        :rtype: bool
-        """
         return osp.isfile(self.filepath)
 
     def get_classification(self):
-        """
-        Get classification result map, returning a label-to-confidence dict.
-
-        We do no place any guarantees on label value types as they may be
-        represented in various forms (integers, strings, etc.).
-
-        Confidence values are in the [0,1] range.
-
-        :raises NoClassificationError: No classification labels/confidences yet
-            set.
-
-        :return: Label-to-confidence dictionary.
-        :rtype: dict[collections.abc.Hashable, float]
-
-        """
         if not self.has_classifications():
             raise NoClassificationError("No classification values.")
         with open(self.filepath, 'rb') as f:
-            return cPickle.load(f)
+            return pickle.load(f)
 
     def set_classification(self, m=None, **kwds):
-        """
-        Set the whole classification map for this element. This will strictly
-        overwrite the entire label-confidence mapping (vs. updating it)
-
-        Label/confidence values may either be provided via keyword arguments or
-        by providing a dictionary mapping labels to confidence values.
-
-        :param m: New labels-to-confidence mapping to set.
-        :type m: dict[collections.abc.Hashable, float]
-
-        :raises ValueError: The given label-confidence map was empty.
-
-        """
         m = super(FileClassificationElement, self)\
             .set_classification(m, **kwds)
         safe_create_dir(osp.dirname(self.filepath))
         with open(self.filepath, 'wb') as f:
-            cPickle.dump(m, f, self.pickle_protocol)
+            pickle.dump(m, f, self.pickle_protocol)
