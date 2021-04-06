@@ -8,7 +8,7 @@ from smqtk_classifier.exceptions import NoClassificationError
 from smqtk_classifier.interfaces.classification_element import ClassificationElement
 
 
-class FileClassificationElement (ClassificationElement):
+class FileClassificationElement (ClassificationElement):  # lgtm [py/missing-equals]
 
     __slots__ = ('save_dir', 'pickle_protocol', 'subdir_split', 'filepath')
 

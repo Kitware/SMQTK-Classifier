@@ -4,7 +4,7 @@ from smqtk_classifier.exceptions import NoClassificationError
 from smqtk_classifier.interfaces.classification_element import ClassificationElement
 
 
-class MemoryClassificationElement (ClassificationElement):
+class MemoryClassificationElement (ClassificationElement):  # lgtm [py/missing-equals]
     """
     In-memory representation of classification results. This is represented
     with a python dictionary.
