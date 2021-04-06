@@ -23,7 +23,7 @@ except ImportError:
     psycopg2 = None
 
 
-class PostgresClassificationElement (ClassificationElement):
+class PostgresClassificationElement (ClassificationElement):  # lgtm [py/missing-equals]
     """
     PostgreSQL database backed classification element.
 
