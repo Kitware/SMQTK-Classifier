@@ -7,14 +7,14 @@ import unittest.mock as mock
 from smqtk_classifier.impls.classification_element.file import FileClassificationElement
 
 
-def test_is_usable():
+def test_is_usable() -> None:
     """
     Test that the file implementation is usable (it should always be)
     """
     assert FileClassificationElement.is_usable()
 
 
-def test_init_abs_save_dir_no_split():
+def test_init_abs_save_dir_no_split() -> None:
     """
     Test that using an absolute directory path results in an expected filepath
     result.
@@ -29,7 +29,7 @@ def test_init_abs_save_dir_no_split():
     assert e.filepath == expected_filepath
 
 
-def test_init_rel_save_dir_no_split():
+def test_init_rel_save_dir_no_split() -> None:
     """
     Test that using a relative directory path results in an expected
     filepath result.
@@ -50,7 +50,7 @@ def test_init_rel_save_dir_no_split():
     assert e.filepath == expected_filepath
 
 
-def test_init_with_split_0_and_1():
+def test_init_with_split_0_and_1() -> None:
     """
     Test that initializing with subdir_split of 0 or 1 results in an expected
     filepath result that is equivalent to not passing .
@@ -72,7 +72,7 @@ def test_init_with_split_0_and_1():
     assert e.filepath == expected_filepath, "Failed for split = 1"
 
 
-def test_init_with_split_4():
+def test_init_with_split_4() -> None:
     """
     Test that initializing with subdir_split results in an expected filepath
     result.
@@ -91,7 +91,7 @@ def test_init_with_split_4():
     assert e.filepath == expected_filepath
 
 
-def test_serialize_deserialize_pickle():
+def test_serialize_deserialize_pickle() -> None:
     """
     Test that we can serialize and deserialize element and maintain equal
     attributes.
@@ -119,7 +119,7 @@ def test_serialize_deserialize_pickle():
     assert e2.filepath == expected_filepath
 
 
-def test_configuration():
+def test_configuration() -> None:
     """
     Test file-based impl's configuration reflection
     """
@@ -140,7 +140,7 @@ def test_configuration():
 
 
 @mock.patch('os.path.isfile')
-def test_has_classification(m_os_isfile):
+def test_has_classification(m_os_isfile: mock.MagicMock) -> None:
     """
     Test that method returns true when the file exists on disk.
     """
@@ -159,7 +159,7 @@ def test_has_classification(m_os_isfile):
 
 
 @mock.patch('os.path.isfile')
-def test_has_classification_no_file(m_os_isfile):
+def test_has_classification_no_file(m_os_isfile: mock.MagicMock) -> None:
     """
     Test that has_classification returns False when the target file being
     checked does not exist on the filesystem.

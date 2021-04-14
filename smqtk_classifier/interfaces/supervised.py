@@ -1,4 +1,7 @@
 import abc
+from typing import Any, Iterable, Mapping
+
+from smqtk_descriptors import DescriptorElement
 
 from .classifier import Classifier
 
@@ -10,7 +13,7 @@ class SupervisedClassifier (Classifier):
     """
 
     @abc.abstractmethod
-    def has_model(self):
+    def has_model(self) -> bool:
         """
         :return: If this instance currently has a model loaded. If no model is
             present, classification of descriptors cannot happen (needs to be
@@ -18,7 +21,11 @@ class SupervisedClassifier (Classifier):
         :rtype: bool
         """
 
-    def train(self, class_examples, **extra_params):
+    def train(
+        self,
+        class_examples: Mapping[Any, Iterable[DescriptorElement]],
+        **extra_params: Any
+    ) -> None:
         """
         Train the supervised classifier model.
 
@@ -30,18 +37,13 @@ class SupervisedClassifier (Classifier):
 
         :param class_examples: Dictionary mapping class labels to iterables of
             DescriptorElement training examples.
-        :type class_examples: dict[collections.abc.Hashable,
-                 collections.abc.Iterable[smqtk.representation.DescriptorElement]]
-
         :param extra_params: Dictionary with extra parameters for training.
-        :type extra_params: dict[basestring, object]
 
         :raises ValueError: There were no class examples provided.
         :raises ValueError: Less than 2 classes were given.
         :raises RuntimeError: A model already exists in this instance.
             Following through with training would overwrite this model.
             Throwing an exception for information protection.
-
         """
         if self.has_model():
             raise RuntimeError("Instance currently has a model. Halting "
@@ -57,7 +59,11 @@ class SupervisedClassifier (Classifier):
         return self._train(class_examples, **extra_params)
 
     @abc.abstractmethod
-    def _train(self, class_examples, **extra_params):
+    def _train(
+        self,
+        class_examples: Mapping[Any, Iterable[DescriptorElement]],
+        **extra_params: Any
+    ) -> None:
         """
         Internal method that trains the classifier implementation.
 
@@ -70,10 +76,5 @@ class SupervisedClassifier (Classifier):
 
         :param class_examples: Dictionary mapping class labels to iterables of
             DescriptorElement training examples.
-        :type class_examples: dict[collections.abc.Hashable,
-                 collections.abc.Iterable[smqtk.representation.DescriptorElement]]
-
         :param extra_params: Dictionary with extra parameters for training.
-        :type extra_params: None | dict[basestring, object]
-
         """

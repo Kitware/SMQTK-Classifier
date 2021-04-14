@@ -1,3 +1,6 @@
+from typing import Any, Dict, Hashable, Sequence, Iterable, Iterator, Union
+
+import numpy as np
 from smqtk_dataprovider import from_uri
 
 from smqtk_classifier.interfaces.classifier import Classifier
@@ -7,42 +10,36 @@ class IndexLabelClassifier (Classifier):
     """
     Applies a listing of labels (new-line separated) to input "descriptor"
     values, which is actually a vector of class confidence values.
+
+    We expect to be given a URI to a new-line separated text file where each
+    line is a separate label in order and matching the dimensionality of an
+    input descriptor.
+
+    :param index_to_label_uri: URI to new-line separated sequence of labels.
     """
 
-    @classmethod
-    def is_usable(cls):
-        return True
-
-    def __init__(self, index_to_label_uri):
-        """
-        Construct a new "classifier" that applies labels to input vector
-        indices.
-
-        We expect to be given a URI to a new-line separated text file where each
-        line is a separate label in order and matching the dimensionality of an
-        input descriptor.
-
-        :param index_to_label_uri: URI to new-line separated sequence of labels.
-        :type index_to_label_uri: str
-
-        """
-        super(IndexLabelClassifier, self).__init__()
+    def __init__(self, index_to_label_uri: str):
+        super().__init__()
 
         # load label vector
         self.index_to_label_uri = index_to_label_uri
         self.label_vector = [line.strip() for line in
                              from_uri(index_to_label_uri).to_buffered_reader()]
 
-    def get_config(self):
+    @classmethod
+    def is_usable(cls) -> bool:
+        return True
+
+    def get_config(self) -> Dict[str, Any]:
         return {
             "index_to_label_uri": self.index_to_label_uri,
         }
 
-    def get_labels(self):
+    def get_labels(self) -> Sequence[Hashable]:
         # copying container
         return list(self.label_vector)
 
-    def _classify_arrays(self, array_iter):
+    def _classify_arrays(self, array_iter: Union[np.ndarray, Iterable[np.ndarray]]) -> Iterator[Dict[Hashable, float]]:
         check_dim = True
         for d_vector in array_iter:
             if check_dim:

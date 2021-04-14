@@ -1,11 +1,12 @@
 import pickle
 import multiprocessing
 import multiprocessing.pool
+from typing import Tuple
 import unittest
 import unittest.mock as mock
 
 from smqtk_core.configuration import configuration_test_helper
-from smqtk_descriptors import DescriptorElementFactory
+from smqtk_descriptors import DescriptorElement, DescriptorElementFactory
 from smqtk_descriptors.impls.descriptor_element.memory import DescriptorMemoryElement
 from smqtk_descriptors.utils import parallel_map
 import numpy
@@ -19,11 +20,11 @@ from smqtk_classifier.impls.supervised.libsvm import LibSvmClassifier
                     reason="LibSvmClassifier does not report as usable.")
 class TestLibSvmClassifier (unittest.TestCase):
 
-    def test_impl_findable(self):
+    def test_impl_findable(self) -> None:
         self.assertIn(LibSvmClassifier, Classifier.get_impls())
 
     @mock.patch('smqtk_classifier.impls.supervised.libsvm.LibSvmClassifier._reload_model')
-    def test_configuration(self, m_inst_load_model):
+    def test_configuration(self, m_inst_load_model: mock.Mock) -> None:
         """ Test configuration handling for this implementation.
 
         Mocking out model loading when given URIs if they happen to point to
@@ -46,7 +47,7 @@ class TestLibSvmClassifier (unittest.TestCase):
             assert inst.normalize == ex_normalize
             assert inst.n_jobs == ex_njobs
 
-    def test_no_save_model_pickle(self):
+    def test_no_save_model_pickle(self) -> None:
         # Test model preservation across pickling even without model cache
         # file paths set.
         classifier = LibSvmClassifier(
@@ -70,7 +71,7 @@ class TestLibSvmClassifier (unittest.TestCase):
         NEG_LABEL = 'negative'
         d_factory = DescriptorElementFactory(DescriptorMemoryElement, {})
 
-        def make_element(iv):
+        def make_element(iv: Tuple[int, numpy.ndarray]) -> DescriptorElement:
             i, v = iv
             d = d_factory.new_descriptor('test', i)
             d.set_vector(v)
@@ -119,7 +120,7 @@ class TestLibSvmClassifier (unittest.TestCase):
         self.assertAlmostEqual(c_e_positive, c_pp_positive, 5)
         self.assertAlmostEqual(c_e_negative, c_pp_negative, 5)
 
-    def test_simple_classification(self):
+    def test_simple_classification(self) -> None:
         """
         simple LibSvmClassifier test - 2-class
 
@@ -133,7 +134,7 @@ class TestLibSvmClassifier (unittest.TestCase):
         p = multiprocessing.pool.ThreadPool()
         d_factory = DescriptorElementFactory(DescriptorMemoryElement, {})
 
-        def make_element(iv):
+        def make_element(iv: Tuple[int, numpy.ndarray]) -> DescriptorElement:
             _i, _v = iv
             elem = d_factory.new_descriptor('test', _i)
             elem.set_vector(_v)
@@ -182,7 +183,7 @@ class TestLibSvmClassifier (unittest.TestCase):
         p.close()
         p.join()
 
-    def test_simple_multiclass_classification(self):
+    def test_simple_multiclass_classification(self) -> None:
         """
         simple LibSvmClassifier test - 3-class
 
@@ -198,7 +199,7 @@ class TestLibSvmClassifier (unittest.TestCase):
         d_factory = DescriptorElementFactory(DescriptorMemoryElement, {})
         di = 0
 
-        def make_element(iv):
+        def make_element(iv: Tuple[int, numpy.ndarray]) -> DescriptorElement:
             _i, _v = iv
             elem = d_factory.new_descriptor('test', _i)
             elem.set_vector(_v)
@@ -258,15 +259,15 @@ class TestLibSvmClassifier (unittest.TestCase):
     @mock.patch("smqtk.algorithms.classifier.libsvm.svm.libsvm."
                 "svm_predict_probability")
     @mock.patch("smqtk.algorithms.classifier.libsvm.parallel_map")
-    def test_serial_classification(self, m_pmap, m_svm_pred):
+    def test_serial_classification(self, m_pmap: mock.Mock, m_svm_pred: mock.Mock) -> None:
         """ Test that when n_jobs==1 parallel_map is NOT used. """
         classifier = LibSvmClassifier(
             n_jobs=1
         )
         # Mock some stuff to pretend we have been trained.
-        classifier.has_model = mock.Mock(return_value=True)
+        classifier.has_model = mock.Mock(return_value=True)  # type: ignore
         classifier.svm_label_map = {1: "meh"}
-        classifier.svm_model = mock.Mock()
+        classifier.svm_model = mock.Mock()  # type: ignore
         classifier.svm_model.is_probability_model.return_value = True
         # Values for a default C_SVC
         classifier.svm_model.get_svm_type.return_value = 0
@@ -281,15 +282,15 @@ class TestLibSvmClassifier (unittest.TestCase):
                 "svm_predict_probability")
     @mock.patch("smqtk.algorithms.classifier.libsvm.parallel_map",
                 wraps=parallel_map)
-    def test_parallel_classification(self, m_pmap, m_svm_pred):
+    def test_parallel_classification(self, m_pmap: mock.Mock, m_svm_pred: mock.Mock) -> None:
         """ Test that when n_jobs>1 parallel_map IS used. """
         classifier = LibSvmClassifier(
             n_jobs=4
         )
         # Mock some stuff to pretend we have been trained.
-        classifier.has_model = mock.Mock(return_value=True)
+        classifier.has_model = mock.Mock(return_value=True)  # type: ignore
         classifier.svm_label_map = {1: "meh"}
-        classifier.svm_model = mock.Mock()
+        classifier.svm_model = mock.Mock()  # type: ignore
         classifier.svm_model.is_probability_model.return_value = True
         # Values for a default C_SVC
         classifier.svm_model.get_svm_type.return_value = 0

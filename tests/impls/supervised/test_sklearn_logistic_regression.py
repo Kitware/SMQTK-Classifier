@@ -17,9 +17,12 @@ class TestSklearnLogisticRegressionClassifier (unittest.TestCase):
     Tests for the SkLearnLogisticRegression plugin implementation.
     """
 
-    def test_configuration(self):
+    def test_configuration(self) -> None:
         """ Standard configuration test. """
-        inst = SkLearnLogisticRegression(
+        # If there is no scikit-learn installed, this object has no constructor
+        # parameterization. We would not be in here at that point because the
+        # impl would not report as usable, but mypy doesn't care about that.
+        inst = SkLearnLogisticRegression(  # type: ignore
             penalty='l1', dual=True, tol=1e-6, C=2.0, fit_intercept=False,
             intercept_scaling=3, class_weight={0: 2.0, 1: 3.0},
             random_state=456, solver='liblinear', max_iter=99,
@@ -40,7 +43,7 @@ class TestSklearnLogisticRegressionClassifier (unittest.TestCase):
             assert inst.warm_start is inst_i.warm_start is True
             assert inst.n_jobs == inst_i.n_jobs == 2
 
-    def test_simple_classification(self):
+    def test_simple_classification(self) -> None:
         """ Test simple train and classify setup. """
         # Fix random seed for deterministic testing.
         numpy.random.seed(0)
@@ -63,7 +66,8 @@ class TestSklearnLogisticRegressionClassifier (unittest.TestCase):
         test1 = numpy.interp(numpy.random.rand(N), [0, 1], [0.0, .45])[:, numpy.newaxis]
         test2 = numpy.interp(numpy.random.rand(N), [0, 1], [.55, 1.0])[:, numpy.newaxis]
 
-        classifier = SkLearnLogisticRegression(random_state=0)
+        # See L22
+        classifier = SkLearnLogisticRegression(random_state=0)  # type: ignore
         classifier.train({
             POS_LABEL: train1_e,
             NEG_LABEL: train2_e,
@@ -78,7 +82,7 @@ class TestSklearnLogisticRegressionClassifier (unittest.TestCase):
             assert m[NEG_LABEL] > m[POS_LABEL], \
                 "Found false positive: {} :: {}".format(m, v)
 
-    def test_simple_multiclass_classification(self):
+    def test_simple_multiclass_classification(self) -> None:
         """ Test simple train and classify setup with 3 classes. """
         # Fix random seed for deterministic testing.
         numpy.random.seed(0)
@@ -110,6 +114,7 @@ class TestSklearnLogisticRegressionClassifier (unittest.TestCase):
         test3 = numpy.interp(numpy.random.rand(N), [0, 1], [.70, 1.0])[:, numpy.newaxis]
 
         # Train and test classifier instance
+        # See L22
         classifier = SkLearnLogisticRegression(random_state=0)
         classifier.train({
             LABEL_1: train1_e,

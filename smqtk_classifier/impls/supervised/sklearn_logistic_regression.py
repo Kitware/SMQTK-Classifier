@@ -1,3 +1,4 @@
+from typing import Any, Dict, Hashable, Iterable, Iterator, Mapping, Sequence, Union
 import warnings
 
 import numpy as np
@@ -7,8 +8,8 @@ from smqtk_classifier.interfaces.supervised import SupervisedClassifier
 
 
 try:
-    import sklearn
-    from sklearn.linear_model import LogisticRegression
+    import sklearn  # type: ignore
+    from sklearn.linear_model import LogisticRegression  # type: ignore
 except ImportError:
     warnings.warn(
         "sklearn.linear_model.LogisticRegression was not importable: the "
@@ -16,7 +17,8 @@ except ImportError:
     )
     sklearn = None
 
-    class LogisticRegression:
+    # Actually no, mypy, if we're here then it is not actually defined.
+    class LogisticRegression:  # type: ignore
         """ Stub """
 
 
@@ -30,22 +32,26 @@ class SkLearnLogisticRegression (LogisticRegression, SupervisedClassifier):
     """
 
     @classmethod
-    def is_usable(cls):
+    def is_usable(cls) -> bool:
         return sklearn is not None
 
-    def get_config(self):
+    def get_config(self) -> Dict[str, Any]:
         return self.get_params()
 
-    def has_model(self):
+    def has_model(self) -> bool:
         try:
             return self.coef_ is not None
         except AttributeError:
             return False
 
-    def get_labels(self):
+    def get_labels(self) -> Sequence[Hashable]:
         return self.classes_.tolist()
 
-    def _train(self, class_examples, **extra_params):
+    def _train(
+        self,
+        class_examples: Mapping[Any, Iterable[DescriptorElement]],
+        **extra_params: Any
+    ) -> None:
         # convert descriptor elements into combines ndarray with associated
         # label vector.
         vec_list = []
@@ -63,7 +69,7 @@ class SkLearnLogisticRegression (LogisticRegression, SupervisedClassifier):
         vec_list = np.vstack(vec_list)
         self.fit(vec_list, label_list)
 
-    def _classify_arrays(self, array_iter):
+    def _classify_arrays(self, array_iter: Union[np.ndarray, Iterable[np.ndarray]]) -> Iterator[Dict[Hashable, float]]:
         # Collect arrays for prediction.
         # - Collect into numpy.ndarray if not already one.
         if isinstance(array_iter, np.ndarray):
