@@ -1,3 +1,5 @@
+from typing import Set
+
 
 class NoClassificationError (Exception):
     """
@@ -11,10 +13,9 @@ class MissingLabelError(Exception):
     Raised by ClassifierCollection.classify when requested classifier labels
     are missing from collection.
     """
-    def __init__(self, labels):
+    def __init__(self, labels: Set[str]):
         """
         :param labels: The labels missing from the collection
-        :type labels: set[str]
         """
         super(MissingLabelError, self).__init__(labels)
         self.labels = labels

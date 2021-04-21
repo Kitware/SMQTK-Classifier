@@ -1,27 +1,32 @@
-import collections
+import collections.abc
 from copy import deepcopy
 import ctypes
 import logging
 import os
 import pickle
 import tempfile
+from typing import Any, Dict, Hashable, Iterable, Iterator, Mapping, Optional, Sequence, Union
 import warnings
 
 import numpy
+import numpy as np
 import numpy.linalg
 
 from smqtk_dataprovider import from_uri
 from smqtk_descriptors import DescriptorElement
 from smqtk_descriptors.utils import parallel_map
 
+from smqtk_classifier.interfaces.classifier import CLASSIFICATION_DICT_T
 from smqtk_classifier.interfaces.supervised import SupervisedClassifier
 
 
 LOG = logging.getLogger(__name__)
+SVM_PARAM_MAPPING_T = Mapping[str, Union[int, float, str]]
 
 
 try:
-    import scipy.stats
+    # noinspection PyPackageRequirements
+    import scipy.stats  # type: ignore
 except ImportError:
     warnings.warn(
         "scipy.stats not importable: LibSvmClassifier will not be usable."
@@ -29,7 +34,9 @@ except ImportError:
     scipy = None
 
 try:
+    # noinspection PyPackageRequirements
     import svm  # type: ignore
+    # noinspection PyPackageRequirements
     import svmutil  # type: ignore
 except ImportError:
     warnings.warn(
@@ -43,60 +50,49 @@ class LibSvmClassifier (SupervisedClassifier):
     """
     Classifier that uses libSVM for support-vector machine functionality.
 
+    Model file paths are optional. If they are given and the file(s) exist,
+    we will load them. If they do not, we treat the path(s) as the output
+    path(s) for saving a model after calling ``train``. If this is None
+    (default), no model is loaded nor output via training, thus any model
+    trained will only exist in memory during the lifetime of this instance.
+
     **Note**: *If pickled without a having model file paths configured, this
     implementation will write out temporary files upon pickling and loading.
     This is required because the model instance is not transportable via
     serialization due to libSVM being an external C library.*
+
+    :param svm_model_uri: Path to the libSVM model file.
+    :param svm_label_map_uri: Path to the pickle file containing this
+        model's output labels.
+    :param train_params: SVM parameters used for training. See libSVM
+        documentation for parameter flags and values. A parameter with no value
+        on the SVM CLI should be given an empty string value,
+        E.g. `{"-q": ""}`.
+    :param normalize: Normalize input vectors to training and
+        classification methods using ``numpy.linalg.norm``. This may either
+        be  ``None``, disabling normalization, or any valid value that
+        could be passed to the ``ord`` parameter in ``numpy.linalg.norm``
+        for 1D arrays. This is ``None`` by default (no normalization).
+    :param n_jobs:
+        Number of processes to use to parallelize prediction. If None or a
+        negative value, all cores are used.
     """
 
-    @classmethod
-    def is_usable(cls):
-        return None not in {scipy, svm, svmutil}
-
     # noinspection PyDefaultArgument
-    def __init__(self, svm_model_uri=None, svm_label_map_uri=None,
-                 train_params={
-                     '-s': 0,  # C-SVC, assumed default if not provided
-                     '-t': 0,  # linear kernel
-                     '-b': 1,  # enable probability estimates
-                     '-c': 2,  # SVM parameter C
-                     # '-g': 0.0078125,  # initial gamma (1 / 128)
-                 },
-                 normalize=None,
-                 n_jobs=4,
-                 ):
-        """
-        Initialize the classifier with an empty or existing model.
-
-        Model file paths are optional. If they are given and the file(s) exist,
-        we will load them. If they do not, we treat the path(s) as the output
-        path(s) for saving a model after calling ``train``. If this is None
-        (default), no model is loaded nor output via training, thus any model
-        trained will only exist in memory during the lifetime of this instance.
-
-        :param svm_model_uri: Path to the libSVM model file.
-        :type svm_model_uri: None | str
-
-        :param svm_label_map_uri: Path to the pickle file containing this
-            model's output labels.
-        :type svm_label_map_uri: None | str
-
-        :param train_params: SVM parameters used for training. See libSVM
-            documentation for parameter flags and values.
-        :type train_params: dict[basestring, int|float]
-
-        :param normalize: Normalize input vectors to training and
-            classification methods using ``numpy.linalg.norm``. This may either
-            be  ``None``, disabling normalization, or any valid value that
-            could be passed to the ``ord`` parameter in ``numpy.linalg.norm``
-            for 1D arrays. This is ``None`` by default (no normalization).
-        :type normalize: None | int | float | str
-
-        :param int|None n_jobs:
-            Number of processes to use to parallelize prediction. If None or a
-            negative value, all cores are used.
-
-        """
+    def __init__(
+        self,
+        svm_model_uri: Optional[str] = None,
+        svm_label_map_uri: Optional[str] = None,
+        train_params: SVM_PARAM_MAPPING_T = {
+            '-s': 0,  # C-SVC, assumed default if not provided
+            '-t': 0,  # linear kernel
+            '-b': 1,  # enable probability estimates
+            '-c': 2,  # SVM parameter C
+            # '-g': 0.0078125,  # initial gamma (1 / 128)
+        },
+        normalize: Optional[Union[int, float, str]] = None,
+        n_jobs: Optional[int] = 4,
+    ):
         super(LibSvmClassifier, self).__init__()
 
         self.svm_model_uri = svm_model_uri
@@ -110,7 +106,8 @@ class LibSvmClassifier (SupervisedClassifier):
         self.svm_label_map_elem = \
             svm_label_map_uri and from_uri(svm_label_map_uri)
 
-        self.train_params = train_params
+        # Shallow copy to shield from modifying input.
+        self.train_params = dict(train_params)
         self.normalize = normalize
         self.n_jobs = n_jobs
         # Validate normalization parameter by trying it on a random vector
@@ -118,15 +115,26 @@ class LibSvmClassifier (SupervisedClassifier):
             self._norm_vector(numpy.random.rand(8))
 
         # generated parameters
-        #: :type: svm.svm_model
-        self.svm_model = None
+        self.svm_model: Optional[svm.svm_model] = None
         # dictionary mapping SVM integer labels to semantic labels
-        #: :type: dict[int, collections.abc.Hashable]
-        self.svm_label_map = {}
+        self.svm_label_map: Dict[int, Hashable] = {}
 
         self._reload_model()
 
-    def __getstate__(self):
+    @classmethod
+    def is_usable(cls) -> bool:
+        return None not in {scipy, svm, svmutil}
+
+    def get_config(self) -> Dict[str, Any]:
+        return {
+            "svm_model_uri": self.svm_model_uri,
+            "svm_label_map_uri": self.svm_label_map_uri,
+            "train_params": self.train_params,
+            "normalize": self.normalize,
+            "n_jobs": self.n_jobs,
+        }
+
+    def __getstate__(self) -> Any:
         # If we don't have a model, or if we have one but its not being saved
         # to files.
         if not self.has_model() or (self.svm_model_uri is not None and
@@ -151,7 +159,7 @@ class LibSvmClassifier (SupervisedClassifier):
             finally:
                 os.remove(fp)
 
-    def __setstate__(self, state):
+    def __setstate__(self, state: Any) -> None:
         self.__dict__.update(state)
 
         self.svm_model_elem = \
@@ -186,7 +194,7 @@ class LibSvmClassifier (SupervisedClassifier):
             self.svm_model = None
             self._reload_model()
 
-    def _reload_model(self):
+    def _reload_model(self) -> None:
         """
         Reload SVM model from configured file path.
         """
@@ -200,24 +208,21 @@ class LibSvmClassifier (SupervisedClassifier):
                 pickle.loads(self.svm_label_map_elem.get_bytes())
 
     @staticmethod
-    def _gen_param_string(params):
+    def _gen_param_string(params: SVM_PARAM_MAPPING_T) -> str:
         """
         Make a single string out of a parameters dictionary
         """
         return ' '.join((str(k) + ' ' + str(v)
                          for k, v in params.items()))
 
-    def _norm_vector(self, v):
+    def _norm_vector(self, v: np.ndarray) -> np.ndarray:
         """
         Class standard array normalization. Normalized along max dimension (a=0
         for a 1D array, a=1 for a 2D array, etc.).
 
         :param v: Vector to normalize
-        :type v: numpy.ndarray
 
         :return: Returns the normalized version of input array ``v``.
-        :rtype: numpy.ndarray
-
         """
         if self.normalize is not None:
             n = numpy.linalg.norm(v, self.normalize, v.ndim - 1,
@@ -229,16 +234,7 @@ class LibSvmClassifier (SupervisedClassifier):
         # Normalization off
         return v
 
-    def get_config(self):
-        return {
-            "svm_model_uri": self.svm_model_uri,
-            "svm_label_map_uri": self.svm_label_map_uri,
-            "train_params": self.train_params,
-            "normalize": self.normalize,
-            "n_jobs": self.n_jobs,
-        }
-
-    def has_model(self):
+    def has_model(self) -> bool:
         """
         :return: If this instance currently has a model loaded. If no model is
             present, classification of descriptors cannot happen.
@@ -246,7 +242,11 @@ class LibSvmClassifier (SupervisedClassifier):
         """
         return None not in (self.svm_model, self.svm_label_map)
 
-    def _train(self, class_examples, **extra_params):
+    def _train(
+        self,
+        class_examples: Mapping[Any, Iterable[DescriptorElement]],
+        **extra_params: Any
+    ) -> None:
         # Offset from 0 for positive class labels to use
         # - not using label of 0 because we think libSVM wants positive labels
         CLASS_LABEL_OFFSET = 1
@@ -262,8 +262,15 @@ class LibSvmClassifier (SupervisedClassifier):
         train_vectors = []
         train_group_sizes = []  # number of examples per class
         self.svm_label_map = {}
-        # Making SVM label assignment deterministic to alphabetic order
-        for i, l in enumerate(sorted(class_examples), CLASS_LABEL_OFFSET):
+        # Making SVM label assignment deterministic to lexicographical order
+        # of the type repr.
+        # -- Can't specifically guarantee that dict key types will all support
+        #    less-than operator., however we can always get some kind of repr
+        #    which is a string which does support less-than. In the common case
+        #    keys will be strings and ints, but this "should" handle more
+        #    exotic cases, at least for the purpose of ordering keys reasonably
+        #    deterministically.
+        for i, l in enumerate(sorted(class_examples, key=lambda e: str(e)), CLASS_LABEL_OFFSET):
             # Map integer SVM label to semantic label
             self.svm_label_map[i] = l
 
@@ -287,7 +294,6 @@ class LibSvmClassifier (SupervisedClassifier):
             % (len(train_labels), len(train_vectors))
 
         LOG.debug("Forming train params")
-        #: :type: dict
         params = deepcopy(self.train_params)
         params.update(param_debug)
         # Calculating class weights if set to C-SVC type SVM
@@ -332,12 +338,12 @@ class LibSvmClassifier (SupervisedClassifier):
             finally:
                 os.remove(fp)
 
-    def get_labels(self):
+    def get_labels(self) -> Sequence[Hashable]:
         if not self.has_model():
             raise RuntimeError("No model loaded")
         return list(self.svm_label_map.values())
 
-    def _classify_arrays(self, array_iter):
+    def _classify_arrays(self, array_iter: Union[np.ndarray, Iterable[np.ndarray]]) -> Iterator[Dict[Hashable, float]]:
         if not self.has_model():
             raise RuntimeError("No SVM model present for classification")
         assert self.svm_model is not None, (
@@ -372,7 +378,7 @@ class LibSvmClassifier (SupervisedClassifier):
             if svm_type in [svm.NU_SVR, svm.EPSILON_SVR]:
                 nr_class = 0
 
-            def single_pred(v):
+            def single_pred(v: np.ndarray) -> CLASSIFICATION_DICT_T:
                 prob_estimates = (ctypes.c_double * nr_class)()
                 v, idx = svm.gen_svm_nodearray(v.tolist())
                 svm.libsvm.svm_predict_probability(self.svm_model, v,
@@ -396,7 +402,7 @@ class LibSvmClassifier (SupervisedClassifier):
             else:
                 nr_classifier = nr_class * (nr_class - 1) // 2
 
-            def single_label(v):
+            def single_label(v: np.ndarray) -> CLASSIFICATION_DICT_T:
                 dec_values = (ctypes.c_double * nr_classifier)()
                 v, idx = svm.gen_svm_nodearray(v.tolist())
                 label = svm.libsvm.svm_predict_values(self.svm_model, v,

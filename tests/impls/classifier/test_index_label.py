@@ -24,28 +24,28 @@ class TestIndexLabelClassifier (unittest.TestCase):
 
     FILEPATH_TEST_LABELS = os.path.join(TEST_DATA_DIR, 'test_labels.txt')
 
-    def test_is_usable(self):
+    def test_is_usable(self) -> None:
         # Should always be available
         self.assertTrue(IndexLabelClassifier.is_usable())
 
-    def test_impl_findable(self):
+    def test_impl_findable(self) -> None:
         self.assertIn(IndexLabelClassifier,
                       Classifier.get_impls())
 
-    def test_configurable(self):
+    def test_configurable(self) -> None:
         c = IndexLabelClassifier(self.FILEPATH_TEST_LABELS)
         for inst in configuration_test_helper(c):
             assert inst.index_to_label_uri == self.FILEPATH_TEST_LABELS
 
-    def test_new(self):
+    def test_new(self) -> None:
         c = IndexLabelClassifier(self.FILEPATH_TEST_LABELS)
         self.assertEqual(c.label_vector, self.EXPECTED_LABEL_VEC)
 
-    def test_get_labels(self):
+    def test_get_labels(self) -> None:
         c = IndexLabelClassifier(self.FILEPATH_TEST_LABELS)
         self.assertEqual(c.get_labels(), self.EXPECTED_LABEL_VEC)
 
-    def test_configuration(self):
+    def test_configuration(self) -> None:
         cfg = IndexLabelClassifier.get_default_config()
         self.assertEqual(cfg, {'index_to_label_uri': None})
 
@@ -53,7 +53,7 @@ class TestIndexLabelClassifier (unittest.TestCase):
         c = IndexLabelClassifier.from_config(cfg)
         self.assertEqual(c.get_config(), cfg)
 
-    def test_classify_arrays(self):
+    def test_classify_arrays(self) -> None:
         c = IndexLabelClassifier(self.FILEPATH_TEST_LABELS)
         c_expected = {
             b'label_1': 1,
@@ -65,10 +65,10 @@ class TestIndexLabelClassifier (unittest.TestCase):
         }
 
         a = numpy.array([1, 2, 3, 4, 5, 6])
-        c = list(c._classify_arrays([a]))[0]
-        self.assertEqual(c, c_expected)
+        c_result = list(c._classify_arrays([a]))[0]
+        self.assertEqual(c_result, c_expected)
 
-    def test_classify_arrays_invalid_descriptor_dimensions(self):
+    def test_classify_arrays_invalid_descriptor_dimensions(self) -> None:
         c = IndexLabelClassifier(self.FILEPATH_TEST_LABELS)
 
         # One less

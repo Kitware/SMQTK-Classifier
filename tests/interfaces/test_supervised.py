@@ -1,6 +1,12 @@
+from typing import Any, Dict, Hashable, Iterable, Iterator, List, Mapping, Sequence
 import unittest
+import unittest.mock as mock
+
+from smqtk_descriptors import DescriptorElement
 
 from smqtk_classifier import SupervisedClassifier
+from smqtk_classifier.interfaces.classification_element import CLASSIFICATION_DICT_T
+from smqtk_classifier.interfaces.classifier import ARRAY_ITER_T
 
 
 class DummySupervisedClassifier (SupervisedClassifier):
@@ -9,35 +15,42 @@ class DummySupervisedClassifier (SupervisedClassifier):
     EXPECTED_HAS_MODEL = False
 
     @classmethod
-    def is_usable(cls):
+    def is_usable(cls) -> bool:
         return True
 
-    def get_config(self):
+    def get_config(self) -> Dict[str, Any]:
         return {}
 
-    def get_labels(self):
+    def get_labels(self) -> Sequence[Hashable]:
         return self.EXPECTED_LABELS
 
-    def _classify_arrays(self, array_iter):
+    def _classify_arrays(self, array_iter: ARRAY_ITER_T) -> Iterator[CLASSIFICATION_DICT_T]:
         # Some deterministic dummy impl
         for i, v in enumerate(array_iter):
             yield {'test': i}
 
-    def has_model(self):
+    def has_model(self) -> bool:
         return self.EXPECTED_HAS_MODEL
 
-    def _train(self, class_examples, **extra_params):
-        # Return super-method result in its attempt to unify mappings
-        return class_examples
+    def _train(
+        self,
+        class_examples: Mapping[Hashable, Iterable[DescriptorElement]],
+        **extra_params: Any
+    ) -> None:
+        # Expecting this to be mocked in testing, but have to override to
+        # satisfy abstract baseclass fulfillment.
+        raise NotImplementedError()
 
 
 class TestSupervisedClassifierAbstractClass (unittest.TestCase):
 
+    test_classifier: DummySupervisedClassifier
+
     @classmethod
-    def setUpClass(cls):
+    def setUpClass(cls) -> None:
         cls.test_classifier = DummySupervisedClassifier()
 
-    def test_train_hasModel(self):
+    def test_train_hasModel(self) -> None:
         # Calling the train method should fail the class also reports that it
         # already has a model. Shouldn't matter what is passed to the method
         # (or lack of things passed to the method).
@@ -52,14 +65,14 @@ class TestSupervisedClassifierAbstractClass (unittest.TestCase):
     # care what the value for labels are.
     #
 
-    def test_train_noModel_noExamples(self):
+    def test_train_noModel_noExamples(self) -> None:
         self.test_classifier.EXPECTED_HAS_MODEL = False
         self.assertRaises(
             ValueError,
             self.test_classifier.train, {}
         )
 
-    def test_train_noModel_oneExample_classExamples(self):
+    def test_train_noModel_oneExample_classExamples(self) -> None:
         self.test_classifier.EXPECTED_HAS_MODEL = False
         input_class_examples = {
             'label_1': [0, 1, 2],
@@ -69,15 +82,17 @@ class TestSupervisedClassifierAbstractClass (unittest.TestCase):
             self.test_classifier.train, input_class_examples
         )
 
-    def test_train_noModel_classExamples_only(self):
+    def test_train_noModel_classExamples_only(self) -> None:
         self.test_classifier.EXPECTED_HAS_MODEL = False
-        input_class_examples = {
-            'label_1': [0, 1, 2, 3],
-            'label_2': [3, 4, 5, 6],
-            'label_3': [8, 9, 10, 11],
-            'special symbolLabel +here': [5, 1, 76, 8, 9, 2, 5],
+        input_class_examples: Dict[str, List[DescriptorElement]] = {
+            'label_1': [mock.Mock(spec=DescriptorElement)],
+            'label_2': [mock.Mock(spec=DescriptorElement)],
+            'label_3': [mock.Mock(spec=DescriptorElement)],
+            'special symbolLabel +here': [mock.Mock(spec=DescriptorElement)],
         }
         # Intentionally not passing DescriptorElements here.
-        # noinspection PyTypeChecker
-        m = self.test_classifier.train(class_examples=input_class_examples)
-        self.assertEqual(m, input_class_examples)
+        self.test_classifier._train = mock.MagicMock()  # type: ignore
+        self.test_classifier.train(class_examples=input_class_examples)
+        self.test_classifier._train.assert_called_once_with(
+            input_class_examples
+        )

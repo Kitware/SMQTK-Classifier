@@ -2,17 +2,22 @@ import abc
 from collections import deque
 import itertools
 import logging
-from typing import Deque, List, Optional, Tuple
+from typing import Deque, Generator, Hashable, Iterable, Iterator, List, Optional, Sequence, Tuple, Union
 
 import numpy as np
 
 from smqtk_core import Plugfigurable
-from smqtk_classifier import ClassificationElement
 from smqtk_descriptors import DescriptorElement
 
 from smqtk_classifier._defaults import DFLT_CLASSIFIER_FACTORY
+from smqtk_classifier.classification_element_factory import ClassificationElementFactory
+from smqtk_classifier.interfaces.classification_element import (
+    ClassificationElement,
+    CLASSIFICATION_DICT_T
+)
 
 
+ARRAY_ITER_T = Union[np.ndarray, Iterable[np.ndarray]]
 LOG = logging.getLogger(__name__)
 
 
@@ -23,7 +28,7 @@ class Classifier (Plugfigurable):
     """
 
     @abc.abstractmethod
-    def get_labels(self):
+    def get_labels(self) -> Sequence[Hashable]:
         """
         Get the sequence of class labels that this classifier can classify
         descriptors into. This includes the negative or background label if the
@@ -37,13 +42,17 @@ class Classifier (Plugfigurable):
         """
 
     @abc.abstractmethod
-    def _classify_arrays(self, array_iter):
+    def _classify_arrays(self, array_iter: ARRAY_ITER_T) -> Iterator[CLASSIFICATION_DICT_T]:
         """
         Overridable method for classifying an iterable of descriptor elements
         whose vectors should be classified.
 
         At this level, all input arrays are guaranteed to be of consistent
         dimensionality.
+
+        *Remember:* A single-pass `Iterator` is a valid `Iterable`. If an
+        implementation needs to pass over the input multiple times, either
+        ensure you are receiving an ndarray, or *not* and Iterator.
 
         Each classification mapping should contain confidence values for each
         label the configured model contains.
@@ -52,23 +61,22 @@ class Classifier (Plugfigurable):
         manner whereby each label is given a confidence-like value in the
         [0, 1] range.
 
-        :param collections.abc.Iterable[numpy.ndarray] array_iter:
+        :param array_iter:
             Iterable of arrays to be classified.
 
-        :return: Iterable of dictionaries, parallel in association to the input
+        :return: Iterator of dictionaries, parallel in association to the input
             descriptor vectors. Each dictionary should map labels to associated
             confidence values.
-        :rtype: collections.abc.Iterable[dict[collections.abc.Hashable, float]]
         """
 
     @staticmethod
-    def _assert_array_dim_consistency(array_iter):
+    def _assert_array_dim_consistency(array_iter: ARRAY_ITER_T) -> ARRAY_ITER_T:
         """
         Assert that arrays are consistent in dimensionality across iterated
         arrays.
 
         Currently we only support iterating single dimension vectors. Arrays
-        of more than one dimension (i.e. 2D matries, etc.) will trigger a
+        of more than one dimension (i.e. 2D matrices, etc.) will trigger a
         ValueError.
 
         Includes a short-cut where if the input is a non-object 2D ndarray,
@@ -89,7 +97,9 @@ class Classifier (Plugfigurable):
         try:
             # If an ndarray is at least 2 dimensional and not made of just
             # objects then its shape *will* be consistent.
-            if array_iter.ndim > 1 and array_iter.dtype != np.object:
+            # * Type-ignoring this line to utilize duck-type detection of
+            #   array-type via catching attribute error.
+            if array_iter.ndim > 1 and array_iter.dtype != np.object:  # type: ignore
                 return array_iter
         except AttributeError:
             # If we don't encounter numpy array-like syntax proceed with
@@ -98,7 +108,7 @@ class Classifier (Plugfigurable):
 
         # Fall-back: manually checking that iterated arrays are 1D and of
         # consistent size.
-        def _inner():
+        def _inner() -> Generator[np.ndarray, None, None]:
             dim = None
             for a in array_iter:
                 if a.ndim > 1:
@@ -113,7 +123,7 @@ class Classifier (Plugfigurable):
                 yield a
         return _inner()
 
-    def classify_arrays(self, array_iter):
+    def classify_arrays(self, array_iter: ARRAY_ITER_T) -> Iterator[CLASSIFICATION_DICT_T]:
         """
         Classify an input iterable of numpy arrays into a parallel iterable of
         label-to-confidence mappings (dictionaries).
@@ -134,15 +144,18 @@ class Classifier (Plugfigurable):
         :return: Iterable of dictionaries, parallel in association to the input
             descriptor vectors. Each dictionary should map labels to associated
             confidence values.
-        :rtype: collections.abc.Iterable[dict[collections.abc.Hashable, float]]
         """
         return self._classify_arrays(
             self._assert_array_dim_consistency(array_iter)
         )
 
-    def classify_elements(self, descr_iter,
-                          factory=DFLT_CLASSIFIER_FACTORY,
-                          overwrite=False, d_elem_batch=100):
+    def classify_elements(
+        self,
+        descr_iter: Iterable[DescriptorElement],
+        factory: ClassificationElementFactory = DFLT_CLASSIFIER_FACTORY,
+        overwrite: bool = False,
+        d_elem_batch: int = 100
+    ) -> Iterator[ClassificationElement]:
         """
         Classify an input iterable of descriptor elements into a parallel
         iterable of classification elements.
@@ -230,11 +243,9 @@ class Classifier (Plugfigurable):
 
         # TODO: Make generator threadsafe?
         # See: https://anandology.com/blog/using-iterators-and-generators/
-        def iter_tocompute_arrays():
+        def iter_tocompute_arrays() -> Generator[np.ndarray, None, None]:
             """ Yield descriptor vectors for classification elements that need
             computing yet.
-
-            :rtype: typing.Generator[numpy.ndarray]
             """
             # Force into an iterator.
             descr_iterator = iter(descr_iter)
@@ -339,7 +350,7 @@ class Classifier (Plugfigurable):
 
         # Finish yielding any "already-computed" classification elements that
         # are past the last computed element index.
-        for c, already_comp in elem_and_status_q:
+        for ce, already_comp in elem_and_status_q:
             # If an element's already-computed state is False at this point,
             # then the implementation's ``_classify_arrays`` method must not
             # have yielded enough arrays to fill the elements that were flagged
@@ -350,10 +361,14 @@ class Classifier (Plugfigurable):
                     "classifications to fill elements that were flagged for "
                     "computation."
                 )
-            yield c
+            yield ce
 
-    def classify_one_element(self, descr_elem, factory=DFLT_CLASSIFIER_FACTORY,
-                             overwrite=False):
+    def classify_one_element(
+        self,
+        descr_elem: DescriptorElement,
+        factory: ClassificationElementFactory = DFLT_CLASSIFIER_FACTORY,
+        overwrite: bool = False
+    ) -> ClassificationElement:
         """
         Convenience method around ``classify_elements`` for the single-input
         case.

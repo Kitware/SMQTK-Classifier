@@ -12,13 +12,13 @@ from smqtk_classifier.impls.classification_element.memory import MemoryClassific
 
 class TestMemoryClassificationElement (unittest.TestCase):
 
-    def test_is_usable(self):
+    def test_is_usable(self) -> None:
         """
         Test that this implementation is usable (should always be)
         """
         assert MemoryClassificationElement.is_usable()
 
-    def test_init(self):
+    def test_init(self) -> None:
         """
         Test that construction sets the appropriate attributes.
         """
@@ -35,7 +35,7 @@ class TestMemoryClassificationElement (unittest.TestCase):
         # in python 2, threading.RLock() is threading._RLock, but in 3 its _thread.RLock
         assert isinstance(m._c_lock, type(threading.RLock()))
 
-    def test_configuration(self):
+    def test_configuration(self) -> None:
         """
         Test standard configuration
         """
@@ -45,7 +45,7 @@ class TestMemoryClassificationElement (unittest.TestCase):
         configuration_test_helper(inst, {'type_name', 'uuid'},
                                   (ex_tname, ex_uuid))
 
-    def test_serialization_empty(self):
+    def test_serialization_empty(self) -> None:
         e = MemoryClassificationElement('test', 0)
         # Keep it empty.
 
@@ -54,7 +54,7 @@ class TestMemoryClassificationElement (unittest.TestCase):
         e2 = pickle.loads(pickle.dumps(e))
         assert e2._c == expected_map
 
-    def test_serialization_nonempty(self):
+    def test_serialization_nonempty(self) -> None:
         e = MemoryClassificationElement('test', 0)
         e.set_classification(a=0, b=1)
 
@@ -63,14 +63,14 @@ class TestMemoryClassificationElement (unittest.TestCase):
         e2 = pickle.loads(pickle.dumps(e))
         assert e2._c == expected_map
 
-    def test_get_config_empty(self):
+    def test_get_config_empty(self) -> None:
         """
         Test that configuration returned is empty.
         """
         e = MemoryClassificationElement('test', 0)
         assert e.get_config() == {}
 
-    def test_get_config_nonempty(self):
+    def test_get_config_nonempty(self) -> None:
         """
         Test that configuration returned is empty.
         """
@@ -78,7 +78,7 @@ class TestMemoryClassificationElement (unittest.TestCase):
         e._c = {'a': 1.0, 'b': 0.0}
         assert e.get_config() == {}
 
-    def test_has_classifications_empty(self):
+    def test_has_classifications_empty(self) -> None:
         """
         Test that has_classifications returns false when the internal map
         has either not been set or is an empty dictionary.
@@ -89,7 +89,7 @@ class TestMemoryClassificationElement (unittest.TestCase):
         e._c = {}
         assert e.has_classifications() is False
 
-    def test_has_classification_nonempty(self):
+    def test_has_classification_nonempty(self) -> None:
         """
         Test that has_classifications returns true when there is a valid
         internal map.
@@ -98,7 +98,7 @@ class TestMemoryClassificationElement (unittest.TestCase):
         e._c = {'a': 1, 'b': 0}
         assert e.has_classifications() is True
 
-    def test_get_classification_empty(self):
+    def test_get_classification_empty(self) -> None:
         """
         Test that NoClassificationError is raised when there is no or an empty
         classification map set.
@@ -109,16 +109,16 @@ class TestMemoryClassificationElement (unittest.TestCase):
                            match="No classification labels/values"):
             e.get_classification()
 
-    def test_get_classification(self):
+    def test_get_classification(self) -> None:
         """
         Test that a valid classification map is returned from
         """
-        expected_map = {'a': 1, 'b': 0}
+        expected_map = {'a': 1., 'b': 0.}
         e = MemoryClassificationElement('test', 0)
         e._c = expected_map
         assert e.get_classification() == expected_map
 
-    def test_set_classification(self):
+    def test_set_classification(self) -> None:
         """
         Test setting valid classification map.
         """

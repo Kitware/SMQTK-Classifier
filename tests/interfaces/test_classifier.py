@@ -1,4 +1,4 @@
-from typing import Generator
+from typing import Any, Dict, Generator, Hashable, Iterator, List, Sequence
 import unittest
 import unittest.mock as mock
 
@@ -7,23 +7,30 @@ import pytest
 
 from smqtk_descriptors.impls.descriptor_element.memory import DescriptorMemoryElement
 from smqtk_classifier import Classifier, ClassificationElement, ClassificationElementFactory
+from smqtk_classifier.interfaces.classification_element import CLASSIFICATION_DICT_T
+from smqtk_classifier.interfaces.classifier import ARRAY_ITER_T
 
 
 class DummyClassifier (Classifier):
 
     EXPECTED_LABELS = ['constant']
 
+    def __init__(self) -> None:
+        super().__init__()
+        # Mock "method" for testing functionality is called post-final-yield.
+        self.post_iterator_check = mock.Mock()
+
     @classmethod
-    def is_usable(cls):
+    def is_usable(cls) -> bool:
         return True
 
-    def get_config(self):
+    def get_config(self) -> Dict[str, Any]:
         return {}
 
-    def get_labels(self):
+    def get_labels(self) -> Sequence[Hashable]:
         return self.EXPECTED_LABELS
 
-    def _classify_arrays(self, array_iter):
+    def _classify_arrays(self, array_iter: ARRAY_ITER_T) -> Iterator[CLASSIFICATION_DICT_T]:
         """
         Some deterministic dummy impl
         Simply returns a classification with one label "test" whose value is
@@ -31,21 +38,17 @@ class DummyClassifier (Classifier):
         """
         for v in array_iter:
             yield {'test': v[0]}
-        self._post_iterator_check()
+        self.post_iterator_check()
 
-    def _post_iterator_check(self):
-        """ Stub method for testing functionality is called post-final-yield.
-        """
-
-    def _classify_too_few(self, array_iter):
+    def _classify_too_few(self, array_iter: ARRAY_ITER_T) -> Iterator[CLASSIFICATION_DICT_T]:
         """ Swap-in for _classify_arrays that under-generates."""
         # Yield all but one
         array_list = list(array_iter)
         for i, v in enumerate(array_list[:-1]):
             yield {'test': i}
-        self._post_iterator_check()
+        self.post_iterator_check()
 
-    def _classify_too_many(self, array_iter):
+    def _classify_too_many(self, array_iter: ARRAY_ITER_T) -> Iterator[CLASSIFICATION_DICT_T]:
         """ Swap-in for _classify_arrays that over-generates."""
         i = 0
         for i, v in enumerate(array_iter):
@@ -53,24 +56,23 @@ class DummyClassifier (Classifier):
         # Yield some extra stuff
         yield {'test': i+1}
         yield {'test': i+2}
-        self._post_iterator_check()
+        self.post_iterator_check()
 
 
 class TestClassifierAbstractClass (unittest.TestCase):
 
-    def setUp(self):
+    def setUp(self) -> None:
         # Common dummy instance setup per test case.
         self.inst = DummyClassifier()
-        self.inst._post_iterator_check = mock.Mock()
 
-    def test_assert_array_dim_consistency_valid_ndarray(self):
+    def test_assert_array_dim_consistency_valid_ndarray(self) -> None:
         """ Test that when passed a 2D ndarray of non-object type, the
         consistency check short-circuits and simply returns the array. """
         a = np.random.rand(10, 16).astype(np.float32)
         r = self.inst._assert_array_dim_consistency(a)
         assert a is r
 
-    def test_assert_array_dim_consistency_iter_check_bad_dim(self):
+    def test_assert_array_dim_consistency_iter_check_bad_dim(self) -> None:
         """ Test that iteration checking fails when at least one array is not
         1D. """
         a = [
@@ -83,7 +85,7 @@ class TestClassifierAbstractClass (unittest.TestCase):
                            match='Input vector had more than one dimension'):
             list(r)
 
-    def test_assert_array_dim_consistency_iter_check_bad_size(self):
+    def test_assert_array_dim_consistency_iter_check_bad_size(self) -> None:
         """ Test that iteration checking fails when at least one array is of a
         mismatching size compared to the first array. """
 
@@ -97,7 +99,7 @@ class TestClassifierAbstractClass (unittest.TestCase):
                                              'consistency'):
             list(r)
 
-    def test_assert_array_dim_consistency_iter_pass(self):
+    def test_assert_array_dim_consistency_iter_pass(self) -> None:
         """ Test successfully iterating out array vectors post check. """
         a = list(np.random.rand(10, 16).astype(np.float32))
         assert not isinstance(a, np.ndarray)
@@ -105,7 +107,7 @@ class TestClassifierAbstractClass (unittest.TestCase):
         assert isinstance(r, Generator)
         assert np.allclose(list(r), a)
 
-    def test_classify_arrays_inconsistent(self):
+    def test_classify_arrays_inconsistent(self) -> None:
         """ Test that passing arrays of inconsistent dimensionality causes a
         ValueError.
         """
@@ -113,36 +115,35 @@ class TestClassifierAbstractClass (unittest.TestCase):
         with pytest.raises(ValueError):
             list(self.inst.classify_arrays(arrs))
 
-    def test_classify_arrays_empty_iter(self):
+    def test_classify_arrays_empty_iter(self) -> None:
         """ Test that passing an empty iterator correctly yields another empty
         iterator."""
-        arrs = []
+        arrs: ARRAY_ITER_T = []
         assert list(self.inst.classify_arrays(arrs)) == []
-        # noinspection PyUnresolvedReferences
-        self.inst._post_iterator_check.assert_called_once()
+        self.inst.post_iterator_check.assert_called_once()  # type: ignore
 
-    def test_classify_arrays(self):
+    def test_classify_arrays(self) -> None:
         """ Test "successful" function of classify arrays. """
         arrs = np.array([[1, 2, 3],
                          [4, 5, 6],
                          [7, 8, 9]])
         list(self.inst.classify_arrays(arrs))
         # noinspection PyUnresolvedReferences
-        self.inst._post_iterator_check.assert_called_once()
+        self.inst.post_iterator_check.assert_called_once()
 
-    def test_classify_elements_empty_iter(self):
+    def test_classify_elements_empty_iter(self) -> None:
         """ Test that passing an empty iterator to classify elements returns
         an empty iterator.
 
         ``iter_tocompute_arrays`` would yield nothing of course, setting EoI to
         -1 since there was nothing yielded.
         """
-        elems = []
+        elems: List = []
         assert list(self.inst.classify_elements(elems)) == []
         # noinspection PyUnresolvedReferences
-        self.inst._post_iterator_check.assert_called_once()
+        self.inst.post_iterator_check.assert_called_once()
 
-    def test_classify_elements_inconsistent(self):
+    def test_classify_elements_inconsistent(self) -> None:
         """ Test that elements with inconsistent vector dims raise same
         ValueError as the ``test_classify_arrays_inconsistent`` test."""
         arrs = list(map(np.array, [[1, 2, 3], [1, 2, 4], [1, 2, 3, 4]]))
@@ -153,7 +154,7 @@ class TestClassifierAbstractClass (unittest.TestCase):
         with pytest.raises(ValueError, match=r"violated dimension consistency"):
             list(self.inst.classify_elements(elems))
 
-    def test_classify_elements_missing_vector(self):
+    def test_classify_elements_missing_vector(self) -> None:
         """ Test that we get a ValueError when """
         elems = [
             DescriptorMemoryElement('', 0).set_vector([1, 2, 3]),
@@ -163,7 +164,7 @@ class TestClassifierAbstractClass (unittest.TestCase):
         with pytest.raises(ValueError, match=r"no vector stored"):
             list(self.inst.classify_elements(elems))
 
-    def test_classify_elements_impl_under_generates(self):
+    def test_classify_elements_impl_under_generates(self) -> None:
         """ Test that we catch when an implementation under generates
         classifications relative to input descriptors."""
         arrs = np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
@@ -173,12 +174,12 @@ class TestClassifierAbstractClass (unittest.TestCase):
         ]
 
         # Switch inst._classify_arrays to one that under produces
-        self.inst._classify_arrays = self.inst._classify_too_few
+        self.inst._classify_arrays = self.inst._classify_too_few  # type: ignore
 
         with pytest.raises(IndexError, match=r"under-produced classifications"):
             list(self.inst.classify_elements(elems))
 
-    def test_classify_elements_impl_over_generates(self):
+    def test_classify_elements_impl_over_generates(self) -> None:
         """ Test that we catch when an implementation over generates
         classifications relative to input descriptors."""
         elems = [
@@ -189,12 +190,12 @@ class TestClassifierAbstractClass (unittest.TestCase):
         ]
 
         # Switch inst._classify_arrays to one that over produces
-        self.inst._classify_arrays = self.inst._classify_too_many
+        self.inst._classify_arrays = self.inst._classify_too_many  # type: ignore
 
         with pytest.raises(IndexError, match=r"over-produced classifications"):
             list(self.inst.classify_elements(elems))
 
-    def test_classify_elements_none_preexisting(self):
+    def test_classify_elements_none_preexisting(self) -> None:
         """ Test generating classification elements where none generated by the
         factory have existing vectors. i.e. all descriptor elements passed to
         underlying classification method."""
@@ -227,9 +228,9 @@ class TestClassifierAbstractClass (unittest.TestCase):
 
         # Dummy classifier iterator completed to the end.
         # noinspection PyUnresolvedReferences
-        self.inst._post_iterator_check.assert_called_once()
+        self.inst.post_iterator_check.assert_called_once()
 
-    def test_classify_elements_all_preexisting(self):
+    def test_classify_elements_all_preexisting(self) -> None:
         """ Test generating classification elements where all elements
         generated by the factory claim to already have classifications and
         overwrite is False."""
@@ -257,9 +258,9 @@ class TestClassifierAbstractClass (unittest.TestCase):
 
         # Dummy classifier iterator completed to the end.
         # noinspection PyUnresolvedReferences
-        self.inst._post_iterator_check.assert_called_once()
+        self.inst.post_iterator_check.assert_called_once()
 
-    def test_classify_elements_all_preexisting_overwrite(self):
+    def test_classify_elements_all_preexisting_overwrite(self) -> None:
         """ Test generating classification elements where all elements
         generated by the factory claim to already have classifications but
         overwrite is True this time."""
@@ -293,17 +294,17 @@ class TestClassifierAbstractClass (unittest.TestCase):
 
         # Dummy classifier iterator completed to the end.
         # noinspection PyUnresolvedReferences
-        self.inst._post_iterator_check.assert_called_once()
+        self.inst.post_iterator_check.assert_called_once()
 
     # noinspection PyUnresolvedReferences
-    def test_classify_elements_mixed_precomp(self):
+    def test_classify_elements_mixed_precomp(self) -> None:
         """ Test that a setup with mixed pre-computed and not
         ClassificationElements from the factory results in all elements yielded
         correctly."""
         # Setup descriptor elements and paired classification elements the
         # mock factory will be producing.
         descr_elems = []
-        exp_c_elems = []
+        exp_c_elems: List[ClassificationElement] = []
         for i in range(8):
             de = DescriptorMemoryElement('', i).set_vector([i])
             descr_elems.append(de)
@@ -316,7 +317,7 @@ class TestClassifierAbstractClass (unittest.TestCase):
                 ce.has_classifications.return_value = True
             exp_c_elems.append(ce)
 
-        def m_fact_new_desc(_, uid):
+        def m_fact_new_desc(_: Any, uid: int) -> ClassificationElement:
             # UIDs aligned with integer index.
             return exp_c_elems[uid]
 
@@ -332,7 +333,17 @@ class TestClassifierAbstractClass (unittest.TestCase):
         # - All classification elements should have been checked for
         #   ``has_classifications``
         for e in act_c_elems:
+            assert isinstance(e.has_classifications, mock.Mock)
             e.has_classifications.assert_called_once()
+        # Asserts here are primarily for typechecking purposes.
+        assert isinstance(act_c_elems[0].set_classification, mock.Mock)
+        assert isinstance(act_c_elems[1].set_classification, mock.Mock)
+        assert isinstance(act_c_elems[2].set_classification, mock.Mock)
+        assert isinstance(act_c_elems[3].set_classification, mock.Mock)
+        assert isinstance(act_c_elems[4].set_classification, mock.Mock)
+        assert isinstance(act_c_elems[5].set_classification, mock.Mock)
+        assert isinstance(act_c_elems[6].set_classification, mock.Mock)
+        assert isinstance(act_c_elems[7].set_classification, mock.Mock)
         # - Check that set calls were appropriately called or not called.
         act_c_elems[0].set_classification.assert_not_called()
         act_c_elems[1].set_classification.assert_not_called()
@@ -344,9 +355,9 @@ class TestClassifierAbstractClass (unittest.TestCase):
         act_c_elems[7].set_classification.assert_not_called()
 
         # Dummy classifier iterator completed to the end.
-        self.inst._post_iterator_check.assert_called_once()
+        self.inst.post_iterator_check.assert_called_once()
 
-    def test_classify_elements_batching_effect(self):
+    def test_classify_elements_batching_effect(self) -> None:
         """ Test that setting different values to the descriptor fetch batching
         parameter has an effect.
         """
