@@ -20,7 +20,7 @@ import smqtk_classifier
 
 # -- Project information -----------------------------------------------------
 
-project = 'SMQTK'
+project = 'SMQTK-Classifier'
 copyright = '2015, Kitware, Inc.'
 author = 'Kitware, Inc.'
 
