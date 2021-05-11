@@ -23,3 +23,5 @@ Fixes
 
 
 .. _Poetry: https://python-poetry.org/
+
+* Fixing docs and adding RTD

@@ -3,20 +3,19 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Social Media Query ToolKit
-==========================
+Social Media Query ToolKit -- Classifier
+========================================
 
-`GitHub <https://github.com/Kitware/SMQTK>`_
+`GitHub <https://github.com/Kitware/SMQTK-Classifier>`_
 
-Python toolkit for pluggable algorithms and data structures for multimedia-based machine learning.
+This package provides interfaces and implementations around the classification of inputs into some form of labeled probabilistic values. Additional data structure abstractions are defined here to standardize this behavior into common terms.
 
 .. toctree::
    :maxdepth: 2
 
    installation
-   quickstarts
-   architecture
-   examples/overview
+   classifier_interfaces
+   classifier_implementations
    releasing
 
 Indices and tables
