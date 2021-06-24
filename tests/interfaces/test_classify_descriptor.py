@@ -6,12 +6,12 @@ import numpy as np
 import pytest
 
 from smqtk_descriptors.impls.descriptor_element.memory import DescriptorMemoryElement
-from smqtk_classifier import Classifier, ClassificationElement, ClassificationElementFactory
+from smqtk_classifier import ClassifyDescriptor, ClassificationElement, ClassificationElementFactory
 from smqtk_classifier.interfaces.classification_element import CLASSIFICATION_DICT_T
-from smqtk_classifier.interfaces.classifier import ARRAY_ITER_T
+from smqtk_classifier.interfaces.classify_descriptor import ARRAY_ITER_T
 
 
-class DummyClassifier (Classifier):
+class DummyClassifier (ClassifyDescriptor):
 
     EXPECTED_LABELS = ['constant']
 
@@ -381,7 +381,7 @@ class TestClassifierAbstractClass (unittest.TestCase):
 
         # batch default of 100 == 1 call
         with mock.patch(
-            'smqtk_classifier.interfaces.classifier.DescriptorElement.get_many_vectors',
+            'smqtk_classifier.interfaces.classify_descriptor.DescriptorElement.get_many_vectors',
             wraps=DescriptorMemoryElement.get_many_vectors
         ) as m_DE_gmv:
             act_ce_list = list(self.inst.classify_elements(d_elems,
@@ -392,7 +392,7 @@ class TestClassifierAbstractClass (unittest.TestCase):
 
         # batch of 1 == 29 calls
         with mock.patch(
-            'smqtk_classifier.interfaces.classifier.DescriptorElement.get_many_vectors',
+            'smqtk_classifier.interfaces.classify_descriptor.DescriptorElement.get_many_vectors',
             wraps=DescriptorMemoryElement.get_many_vectors
         ) as m_DE_gmv:
             act_ce_list = list(self.inst.classify_elements(d_elems,
@@ -405,7 +405,7 @@ class TestClassifierAbstractClass (unittest.TestCase):
 
         # batch of 20 == 2 calls
         with mock.patch(
-            'smqtk_classifier.interfaces.classifier.DescriptorElement.get_many_vectors',
+            'smqtk_classifier.interfaces.classify_descriptor.DescriptorElement.get_many_vectors',
             wraps=DescriptorMemoryElement.get_many_vectors
         ) as m_DE_gmv:
             act_ce_list = list(self.inst.classify_elements(d_elems,

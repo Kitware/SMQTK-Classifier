@@ -19,3 +19,12 @@ class MissingLabelError(Exception):
         """
         super(MissingLabelError, self).__init__(labels)
         self.labels = labels
+
+
+class ExistingModelError(Exception):
+    """
+    Raised by ClassifyDescriptorSupervised and ClassifyImageSupervised when
+    a model already exists in an instance to prevent overwriting and existing
+    model
+    """
+    pass

@@ -16,8 +16,8 @@ from smqtk_dataprovider import from_uri
 from smqtk_descriptors import DescriptorElement
 from smqtk_descriptors.utils import parallel_map
 
-from smqtk_classifier.interfaces.classifier import CLASSIFICATION_DICT_T
-from smqtk_classifier.interfaces.supervised import SupervisedClassifier
+from smqtk_classifier.interfaces.classify_descriptor import CLASSIFICATION_DICT_T
+from smqtk_classifier.interfaces.classify_descriptor_supervised import ClassifyDescriptorSupervised
 
 
 LOG = logging.getLogger(__name__)
@@ -46,7 +46,7 @@ except ImportError:
     svmutil = None
 
 
-class LibSvmClassifier (SupervisedClassifier):
+class LibSvmClassifier (ClassifyDescriptorSupervised):
     """
     Classifier that uses libSVM for support-vector machine functionality.
 

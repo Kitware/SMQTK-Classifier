@@ -21,7 +21,7 @@ ARRAY_ITER_T = Union[np.ndarray, Iterable[np.ndarray]]
 LOG = logging.getLogger(__name__)
 
 
-class Classifier (Plugfigurable):
+class ClassifyDescriptor (Plugfigurable):
     """
     Interface for algorithms that classify input descriptors into discrete
     labels and/or label confidences.

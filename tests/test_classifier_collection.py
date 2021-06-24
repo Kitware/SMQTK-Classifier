@@ -9,7 +9,7 @@ from smqtk_classifier.impls.classification_element.memory import MemoryClassific
 
 from smqtk_descriptors.impls.descriptor_element.memory import DescriptorMemoryElement
 
-from tests.interfaces.test_classifier import DummyClassifier
+from tests.interfaces.test_classify_descriptor import DummyClassifier
 
 
 class TestClassifierCollection (unittest.TestCase):
@@ -97,12 +97,12 @@ class TestClassifierCollection (unittest.TestCase):
             ccol.get_config(),
             {
                 'a': {
-                    'type': 'tests.interfaces.test_classifier.DummyClassifier',
-                    'tests.interfaces.test_classifier.DummyClassifier': {},
+                    'type': 'tests.interfaces.test_classify_descriptor.DummyClassifier',
+                    'tests.interfaces.test_classify_descriptor.DummyClassifier': {},
                 },
                 'b': {
-                    'type': 'tests.interfaces.test_classifier.DummyClassifier',
-                    'tests.interfaces.test_classifier.DummyClassifier': {},
+                    'type': 'tests.interfaces.test_classify_descriptor.DummyClassifier',
+                    'tests.interfaces.test_classify_descriptor.DummyClassifier': {},
                 }
             }
         )
@@ -121,19 +121,19 @@ class TestClassifierCollection (unittest.TestCase):
         })
         self.assertEqual(ccol._label_to_classifier, {})
 
-    @mock.patch('smqtk_classifier.interfaces.classifier.Classifier.get_impls')
+    @mock.patch('smqtk_classifier.interfaces.classify_descriptor.ClassifyDescriptor.get_impls')
     def test_from_config_with_content(self, m_get_impls: mock.MagicMock) -> None:
         # Mocking implementation getter to only return the dummy
         # implementation.
         m_get_impls.side_effect = lambda: {DummyClassifier}
         ccol = ClassifierCollection.from_config({
             'a': {
-                'type': 'tests.interfaces.test_classifier.DummyClassifier',
-                'tests.interfaces.test_classifier.DummyClassifier': {},
+                'type': 'tests.interfaces.test_classify_descriptor.DummyClassifier',
+                'tests.interfaces.test_classify_descriptor.DummyClassifier': {},
             },
             'b': {
-                'type': 'tests.interfaces.test_classifier.DummyClassifier',
-                'tests.interfaces.test_classifier.DummyClassifier': {},
+                'type': 'tests.interfaces.test_classify_descriptor.DummyClassifier',
+                'tests.interfaces.test_classify_descriptor.DummyClassifier': {},
             },
         })
         self.assertEqual(

@@ -5,7 +5,7 @@ from smqtk_core.configuration import configuration_test_helper
 import numpy
 import pytest
 
-from smqtk_classifier import Classifier
+from smqtk_classifier import ClassifyDescriptor
 from smqtk_classifier.impls.classifier.index_label import IndexLabelClassifier
 
 from tests import TEST_DATA_DIR
@@ -30,7 +30,7 @@ class TestIndexLabelClassifier (unittest.TestCase):
 
     def test_impl_findable(self) -> None:
         self.assertIn(IndexLabelClassifier,
-                      Classifier.get_impls())
+                      ClassifyDescriptor.get_impls())
 
     def test_configurable(self) -> None:
         c = IndexLabelClassifier(self.FILEPATH_TEST_LABELS)

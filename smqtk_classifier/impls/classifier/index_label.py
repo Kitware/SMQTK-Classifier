@@ -3,10 +3,10 @@ from typing import Any, Dict, Hashable, Sequence, Iterable, Iterator, Union
 import numpy as np
 from smqtk_dataprovider import from_uri
 
-from smqtk_classifier.interfaces.classifier import Classifier
+from smqtk_classifier.interfaces.classify_descriptor import ClassifyDescriptor
 
 
-class IndexLabelClassifier (Classifier):
+class IndexLabelClassifier (ClassifyDescriptor):
     """
     Applies a listing of labels (new-line separated) to input "descriptor"
     values, which is actually a vector of class confidence values.
