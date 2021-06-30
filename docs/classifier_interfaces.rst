@@ -1,7 +1,7 @@
 Classifier Interfaces
 ---------------------
 
-Here we list and briefly describe the high level algorithm interfaces which SMQTK-Classifier provides..
+Here we list and briefly describe the high level algorithm interfaces which SMQTK-Classifier provides.
 Some implementations will require additional dependencies that cannot be packaged with SMQTK-Classifier.
 
 
@@ -31,7 +31,8 @@ This interface represents algorithms that classify image instances into discrete
 
 ClassifyImageSupervised
 +++++++++++++++++++++++
-This interface is a class of classifiers that are trainable via supervised training.
+This interface defines a specialization of image classifiers that are
+trainable via supervised learning.
 
 .. autoclass:: smqtk_classifier.interfaces.classify_image_supervised.ClassifyImageSupervised
    :members:

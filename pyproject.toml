@@ -64,7 +64,15 @@ ipython = "^7.16"
 jedi = "^0.17"
 
 [tool.poetry.plugins."smqtk_plugins"]
-# TODO
+# ClassificationElement
+"smqtk_classifier.impls.classification_element.file" = "smqtk_classifier.impls.classification_element.file"
+"smqtk_classifier.impls.classification_element.memory" = "smqtk_classifier.impls.classification_element.memory"
+"smqtk_classifier.impls.classification_element.postgres" = "smqtk_classifier.impls.classification_element.postgres"
+# Classifier
+"smqtk_classifier.impls.classifier.classify_index_label_descriptor" = "smqtk_classifier.impls.classifier.classify_index_label_descriptor"
+# Supervised
+"smqtk_classifier.impls.supervised.libsvm" = "smqtk_classifier.impls.supervised.libsvm"
+"smqtk_classifier.impls.supervised.sklearn_logistic_regression" = "smqtk_classifier.impls.supervised.sklearn_logistic_regression"
 
 ###############################################################################
 [tool.pytest.ini_options]

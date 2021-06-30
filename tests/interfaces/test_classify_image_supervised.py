@@ -14,17 +14,13 @@ class DummySupervisedClassifier (ClassifyImageSupervised):
     EXPECTED_LABELS = ['constant']
     EXPECTED_HAS_MODEL = False
 
-    @classmethod
-    def is_usable(cls) -> bool:
-        return True
-
     def get_config(self) -> Dict[str, Any]:
         return {}
 
     def get_labels(self) -> Sequence[Hashable]:
         return self.EXPECTED_LABELS
 
-    def _classify_images(self, img_iter: IMAGE_ITER_T) -> Iterator[CLASSIFICATION_DICT_T]:
+    def classify_images(self, img_iter: IMAGE_ITER_T) -> Iterator[CLASSIFICATION_DICT_T]:
         # Some deterministic dummy impl
         for i, v in enumerate(img_iter):
             yield {'test': i}
@@ -36,7 +32,7 @@ class DummySupervisedClassifier (ClassifyImageSupervised):
         self,
         class_examples: Mapping[Hashable, Iterable[np.ndarray]],
         **extra_params: Any
-    ) -> Iterable[np.ndarray]:
+    ) -> None:
         # Expecting this to be mocked in testing, but have to override to
         # satisfy abstract baseclass fulfillment.
         raise NotImplementedError()

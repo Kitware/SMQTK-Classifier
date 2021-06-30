@@ -10,8 +10,8 @@ class NoClassificationError (Exception):
 
 class MissingLabelError(Exception):
     """
-    Raised by ClassifierCollection.classify when requested classifier labels
-    are missing from collection.
+    Raised by ClassifyDescriptorCollection.classify when requested classifier
+    labels are missing from collection.
     """
     def __init__(self, labels: Set[str]):
         """
@@ -27,4 +27,3 @@ class ExistingModelError(Exception):
     a model already exists in an instance to prevent overwriting and existing
     model
     """
-    pass

@@ -35,7 +35,6 @@ class ClassifyDescriptor (Plugfigurable):
         classifier embodies such a concept.
 
         :return: Sequence of possible classifier labels.
-        :rtype: collections.abc.Sequence[collections.abc.Hashable]
 
         :raises RuntimeError: No model loaded.
 
@@ -218,7 +217,6 @@ class ClassifyDescriptor (Plugfigurable):
         :return: Iterator of result ClassificationElement instances. UUIDs of
             generated ClassificationElement instances will reflect the UUID of
             the DescriptorElement it was computed from.
-        :rtype: collections.abc.Iterator[smqtk.representation.ClassificationElement]
         """
         log_debug = LOG.debug
 

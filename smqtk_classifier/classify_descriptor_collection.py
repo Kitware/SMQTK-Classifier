@@ -1,7 +1,7 @@
 import threading
 from typing import Any, Dict, Hashable, Iterable, List, Optional, Mapping, Sequence, Set, Type
 from types import TracebackType
-
+from warnings import warn
 import numpy as np
 
 from smqtk_core.configuration import (
@@ -21,7 +21,7 @@ from ._defaults import DFLT_CLASSIFIER_FACTORY
 from .interfaces.classify_descriptor import ClassifyDescriptor
 
 
-class ClassifierCollection (Configurable):
+class ClassifyDescriptorCollection (Configurable):
     """
     A collection of descriptively-labeled classifier instances for the purpose
     of applying all stored classifiers to one or more input descriptor
@@ -62,7 +62,7 @@ class ClassifierCollection (Configurable):
 
     @classmethod
     def get_default_config(cls) -> Dict[str, Any]:
-        c = super(ClassifierCollection, cls).get_default_config()
+        c = super(ClassifyDescriptorCollection, cls).get_default_config()
 
         # We list the label-classifier mapping on one level, so remove the
         # nested map parameter that can optionally be used in the constructor.
@@ -80,7 +80,7 @@ class ClassifierCollection (Configurable):
         cls,
         config_dict: Dict,
         merge_default: bool = True
-    ) -> "ClassifierCollection":
+    ) -> "ClassifyDescriptorCollection":
         if merge_default:
             config_dict = merge_dict(cls.get_default_config(), config_dict)
 
@@ -106,7 +106,7 @@ class ClassifierCollection (Configurable):
                      in self._label_to_classifier.items())
         return c
 
-    def __enter__(self) -> "ClassifierCollection":
+    def __enter__(self) -> "ClassifyDescriptorCollection":
         """
         :rtype: IqrSession
         """
@@ -134,7 +134,7 @@ class ClassifierCollection (Configurable):
         with self._label_to_classifier_lock:
             return set(self._label_to_classifier.keys())
 
-    def add_classifier(self, label: str, classifier: ClassifyDescriptor) -> "ClassifierCollection":
+    def add_classifier(self, label: str, classifier: ClassifyDescriptor) -> "ClassifyDescriptorCollection":
         """
         Add a classifier instance with associated descriptive label to this
         collection.
@@ -170,7 +170,7 @@ class ClassifierCollection (Configurable):
         with self._label_to_classifier_lock:
             return self._label_to_classifier[label]
 
-    def remove_classifier(self, label: str) -> "ClassifierCollection":
+    def remove_classifier(self, label: str) -> "ClassifyDescriptorCollection":
         """
         Remove a label-classifier pair from this collection.
 
@@ -283,3 +283,12 @@ class ClassifierCollection (Configurable):
         for label, classifier in label2classifier.items():
             label2pred[label] = list(classifier.classify_arrays(array_seq))
         return label2pred
+
+
+class ClassifierCollection(ClassifyDescriptorCollection):
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        warn("ClassifierCollection was renamed to "
+             "ClassifyDescriptorCollection", category=DeprecationWarning,
+             stacklevel=2)
+        super().__init__(*args, **kwargs)

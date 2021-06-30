@@ -1,8 +1,8 @@
 import abc
-from typing import Any, Iterable, Mapping, Hashable
+from typing import Iterable, Mapping, Hashable
 import numpy as np
 
-from .classify_image import ClassifyImage
+from .classify_image import ClassifyImage, IMAGE_ITER_T
 from smqtk_classifier.exceptions import ExistingModelError
 
 
@@ -15,15 +15,15 @@ class ClassifyImageSupervised(ClassifyImage):
     @abc.abstractmethod
     def has_model(self) -> bool:
         """
-        If this instance currently has a model loaded. If no model is
-        present, classification of Images cannot happen (needs to be trained).
+        :return: If this instance currently has a model loaded. If no model is
+            present, classification of images cannot happen (needs to be
+            trained).
         """
 
     def train(
         self,
-        class_examples: Mapping[Hashable, Iterable[np.ndarray]],
-        **extra_params: Any
-    ) -> Iterable[np.ndarray]:
+        class_examples: Mapping[Hashable, IMAGE_ITER_T]
+    ) -> None:
         """
         Train the supervised classifier model.
 
@@ -32,6 +32,14 @@ class ClassifyImageSupervised(ClassifyImage):
 
         If the same label is provided to both ``class_examples`` and ``kwds``,
         the examples given to the reference in ``kwds`` will prevail.
+
+        :param class_examples: Dictionary mapping class labels to iterables of
+            Image training examples.
+        :raises ValueError: There were no class examples provided.
+        :raises ValueError: Less than 2 classes were given.
+        :raises RuntimeError: A model already exists in this instance.
+            Following through with training would overwrite this model.
+            Throwing an exception for information protection.
         """
         if self.has_model():
             raise ExistingModelError("Instance currently has a model. Halting "
@@ -44,14 +52,13 @@ class ClassifyImageSupervised(ClassifyImage):
             raise ValueError("Need 2 or more classes for training. Given %d."
                              % len(class_examples))
 
-        return self._train(class_examples, **extra_params)
+        return self._train(class_examples)
 
     @abc.abstractmethod
     def _train(
         self,
-        class_examples: Mapping[Hashable, Iterable[np.ndarray]],
-        **extra_params: Any
-    ) -> Iterable[np.ndarray]:
+        class_examples: Mapping[Hashable, Iterable[np.ndarray]]
+    ) -> None:
         """
         Internal method that trains the classifier implementation.
 
@@ -61,4 +68,7 @@ class ClassifyImageSupervised(ClassifyImage):
         The class labels will have already been checked before entering this
         method, so it can be assumed that the ``class_examples`` will container
         at least two classes.
+
+        :param class_examples: Dictionary mapping class labels to iterables of
+            Image training examples.
         """

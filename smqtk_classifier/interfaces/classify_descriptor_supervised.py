@@ -16,9 +16,9 @@ class ClassifyDescriptorSupervised (ClassifyDescriptor):
     @abc.abstractmethod
     def has_model(self) -> bool:
         """
-        If this instance currently has a model loaded. If no model is
-        present, classification of descriptors cannot happen (needs to be
-        trained).
+        :return: If this instance currently has a model loaded. If no model is
+            present, classification of descriptors cannot happen (needs to be
+            trained).
         """
 
     def train(
@@ -34,6 +34,15 @@ class ClassifyDescriptorSupervised (ClassifyDescriptor):
 
         If the same label is provided to both ``class_examples`` and ``kwds``,
         the examples given to the reference in ``kwds`` will prevail.
+
+        :param class_examples: Dictionary mapping class labels to iterables of
+            DescriptorElement training examples.
+        :param extra_params: Dictionary with extra parameters for training.
+        :raises ValueError: There were no class examples provided.
+        :raises ValueError: Less than 2 classes were given.
+        :raises RuntimeError: A model already exists in this instance.
+            Following through with training would overwrite this model.
+            Throwing an exception for information protection.
         """
         if self.has_model():
             raise ExistingModelError("Instance currently has a model. Halting "
@@ -63,4 +72,8 @@ class ClassifyDescriptorSupervised (ClassifyDescriptor):
         The class labels will have already been checked before entering this
         method, so it can be assumed that the ``class_examples`` will container
         at least two classes.
+
+        :param class_examples: Dictionary mapping class labels to iterables of
+            DescriptorElement training examples.
+        :param extra_params: Dictionary with extra parameters for training.
         """

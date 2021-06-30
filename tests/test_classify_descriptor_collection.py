@@ -3,7 +3,7 @@ import unittest.mock as mock
 
 import numpy as np
 
-from smqtk_classifier import ClassifierCollection
+from smqtk_classifier import ClassifyDescriptorCollection
 from smqtk_classifier.exceptions import MissingLabelError
 from smqtk_classifier.impls.classification_element.memory import MemoryClassificationElement
 
@@ -12,13 +12,13 @@ from smqtk_descriptors.impls.descriptor_element.memory import DescriptorMemoryEl
 from tests.interfaces.test_classify_descriptor import DummyClassifier
 
 
-class TestClassifierCollection (unittest.TestCase):
+class TestClassifyDescriptorCollection (unittest.TestCase):
 
     ##########################################################################
     # Constructor Tests
 
     def test_new_empty(self) -> None:
-        ccol = ClassifierCollection()
+        ccol = ClassifyDescriptorCollection()
         self.assertEqual(ccol._label_to_classifier, {})
 
     def test_new_not_classifier_positional(self) -> None:
@@ -26,7 +26,7 @@ class TestClassifierCollection (unittest.TestCase):
         self.assertRaisesRegex(
             ValueError,
             "for key 'some label'",
-            ClassifierCollection,
+            ClassifyDescriptorCollection,
             classifiers={'some label': 0}
         )
 
@@ -35,24 +35,24 @@ class TestClassifierCollection (unittest.TestCase):
         self.assertRaisesRegex(
             ValueError,
             "for key 'some_label'",
-            ClassifierCollection,
+            ClassifyDescriptorCollection,
             some_label=0
         )
 
     def test_new_positional(self) -> None:
         c = DummyClassifier()
-        ccol = ClassifierCollection(classifiers={'a label': c})
+        ccol = ClassifyDescriptorCollection(classifiers={'a label': c})
         self.assertEqual(ccol._label_to_classifier, {'a label': c})
 
     def test_new_kwargs(self) -> None:
         c = DummyClassifier()
-        ccol = ClassifierCollection(a_label=c)
+        ccol = ClassifyDescriptorCollection(a_label=c)
         self.assertEqual(ccol._label_to_classifier, {'a_label': c})
 
     def test_new_both_pos_and_kwds(self) -> None:
         c1 = DummyClassifier()
         c2 = DummyClassifier()
-        ccol = ClassifierCollection({'a': c1}, b=c2)
+        ccol = ClassifyDescriptorCollection({'a': c1}, b=c2)
         self.assertEqual(ccol._label_to_classifier,
                          {'a': c1, 'b': c2})
 
@@ -62,7 +62,7 @@ class TestClassifierCollection (unittest.TestCase):
         self.assertRaisesRegex(
             ValueError,
             "Duplicate classifier label 'c'",
-            ClassifierCollection,
+            ClassifyDescriptorCollection,
             {'c': c1},
             c=c2
         )
@@ -74,7 +74,7 @@ class TestClassifierCollection (unittest.TestCase):
         # Returns a non-empty dictionary with just the example key. Contains
         # a sub-dictionary that would container the implementation
         # specifications.
-        c = ClassifierCollection.get_default_config()
+        c = ClassifyDescriptorCollection .get_default_config()
 
         # Should just contain the default example
         self.assertEqual(len(c), 1)
@@ -85,13 +85,13 @@ class TestClassifierCollection (unittest.TestCase):
     def test_get_config_empty(self) -> None:
         # The config coming out of an empty collection should be an empty
         # dictionary.
-        ccol = ClassifierCollection()
+        ccol = ClassifyDescriptorCollection()
         self.assertEqual(ccol.get_config(), {})
 
     def test_get_config_with_stuff(self) -> None:
         c1 = DummyClassifier()
         c2 = DummyClassifier()
-        ccol = ClassifierCollection({'a': c1}, b=c2)
+        ccol = ClassifyDescriptorCollection({'a': c1}, b=c2)
         # dummy returns {} config.
         self.assertEqual(
             ccol.get_config(),
@@ -108,14 +108,14 @@ class TestClassifierCollection (unittest.TestCase):
         )
 
     def test_from_config_empty(self) -> None:
-        ccol = ClassifierCollection.from_config({})
+        ccol = ClassifyDescriptorCollection .from_config({})
         self.assertEqual(ccol._label_to_classifier, {})
 
     def test_from_config_skip_example_key(self) -> None:
         # If the default example is left in the config, it should be skipped.
         # The string chosen for the example key should be unlikely to be used
         # in reality.
-        ccol = ClassifierCollection.from_config({
+        ccol = ClassifyDescriptorCollection .from_config({
             '__example_label__':
                 'this should be skipped regardless of content'
         })
@@ -126,7 +126,7 @@ class TestClassifierCollection (unittest.TestCase):
         # Mocking implementation getter to only return the dummy
         # implementation.
         m_get_impls.side_effect = lambda: {DummyClassifier}
-        ccol = ClassifierCollection.from_config({
+        ccol = ClassifyDescriptorCollection .from_config({
             'a': {
                 'type': 'tests.interfaces.test_classify_descriptor.DummyClassifier',
                 'tests.interfaces.test_classify_descriptor.DummyClassifier': {},
@@ -148,11 +148,11 @@ class TestClassifierCollection (unittest.TestCase):
     # Accessor Method Tests
 
     def test_size_len(self) -> None:
-        ccol = ClassifierCollection()
+        ccol = ClassifyDescriptorCollection()
         self.assertEqual(ccol.size(), 0)
         self.assertEqual(len(ccol), 0)
 
-        ccol = ClassifierCollection(
+        ccol = ClassifyDescriptorCollection(
             a=DummyClassifier(),
             b=DummyClassifier(),
         )
@@ -160,11 +160,11 @@ class TestClassifierCollection (unittest.TestCase):
         self.assertEqual(len(ccol), 2)
 
     def test_labels_empty(self) -> None:
-        ccol = ClassifierCollection()
+        ccol = ClassifyDescriptorCollection()
         self.assertEqual(ccol.labels(), set())
 
     def test_labels(self) -> None:
-        ccol = ClassifierCollection(
+        ccol = ClassifyDescriptorCollection(
             classifiers={
                 'b': DummyClassifier(),
             },
@@ -175,7 +175,7 @@ class TestClassifierCollection (unittest.TestCase):
 
     def test_add_classifier_not_classifier(self) -> None:
         # Attempt adding a non-classifier instance
-        ccol = ClassifierCollection()
+        ccol = ClassifyDescriptorCollection()
         # The string 'b' is not a classifier instance.
         self.assertRaisesRegex(
             ValueError,
@@ -185,7 +185,7 @@ class TestClassifierCollection (unittest.TestCase):
         )
 
     def test_add_classifier_duplicate_label(self) -> None:
-        ccol = ClassifierCollection(a=DummyClassifier())
+        ccol = ClassifyDescriptorCollection(a=DummyClassifier())
         self.assertRaisesRegex(
             ValueError,
             "Duplicate label provided: 'a'",
@@ -194,7 +194,7 @@ class TestClassifierCollection (unittest.TestCase):
         )
 
     def test_add_classifier(self) -> None:
-        ccol = ClassifierCollection()
+        ccol = ClassifyDescriptorCollection()
         self.assertEqual(ccol.size(), 0)
 
         c = DummyClassifier()
@@ -204,7 +204,7 @@ class TestClassifierCollection (unittest.TestCase):
 
     def test_get_classifier_bad_label(self) -> None:
         c = DummyClassifier()
-        ccol = ClassifierCollection(a=c)
+        ccol = ClassifyDescriptorCollection(a=c)
         self.assertRaises(
             KeyError,
             ccol.get_classifier,
@@ -213,12 +213,12 @@ class TestClassifierCollection (unittest.TestCase):
 
     def test_get_classifier(self) -> None:
         c = DummyClassifier()
-        ccol = ClassifierCollection(a=c)
+        ccol = ClassifyDescriptorCollection(a=c)
         self.assertEqual(ccol.get_classifier('a'), c)
 
     def test_remove_classifier_bad_label(self) -> None:
         c = DummyClassifier()
-        ccol = ClassifierCollection(a=c)
+        ccol = ClassifyDescriptorCollection(a=c)
         self.assertRaises(
             KeyError,
             ccol.remove_classifier, 'b'
@@ -226,7 +226,7 @@ class TestClassifierCollection (unittest.TestCase):
 
     def test_remove_classifier(self) -> None:
         c = DummyClassifier()
-        ccol = ClassifierCollection(a=c)
+        ccol = ClassifyDescriptorCollection(a=c)
         ccol.remove_classifier('a')
         self.assertEqual(ccol._label_to_classifier, {})
 
@@ -235,7 +235,7 @@ class TestClassifierCollection (unittest.TestCase):
 
     def test_classify(self) -> None:
         """ Test invoking `classify` in a valid manner. """
-        ccol = ClassifierCollection({
+        ccol = ClassifyDescriptorCollection({
             'subjectA': DummyClassifier(),
             'subjectB': DummyClassifier(),
         })
@@ -264,7 +264,7 @@ class TestClassifierCollection (unittest.TestCase):
     def test_classify_arrays(self) -> None:
         """ Test invoking `classify_arrays` in a valid manner. """
         # Use some dummy classifiers that
-        ccol = ClassifierCollection({
+        ccol = ClassifyDescriptorCollection({
             'subjectA': DummyClassifier(),
             'subjectB': DummyClassifier(),
         })
@@ -283,7 +283,7 @@ class TestClassifierCollection (unittest.TestCase):
         assert result['subjectB'] == [{'test': 0}, {'test': 5}]
 
     def test_classify_subset(self) -> None:
-        ccol = ClassifierCollection({
+        ccol = ClassifyDescriptorCollection({
             'subjectA': DummyClassifier(),
             'subjectB': DummyClassifier(),
         })
@@ -311,7 +311,7 @@ class TestClassifierCollection (unittest.TestCase):
                              {'test': 0})
 
     def test_classify_empty_subset(self) -> None:
-        ccol = ClassifierCollection({
+        ccol = ClassifyDescriptorCollection({
             'subjectA': DummyClassifier(),
             'subjectB': DummyClassifier(),
         })
@@ -334,7 +334,7 @@ class TestClassifierCollection (unittest.TestCase):
         classifierB.classify_one_element.assert_not_called()
 
     def test_classify_missing_label(self) -> None:
-        ccol = ClassifierCollection({
+        ccol = ClassifyDescriptorCollection({
             'subjectA': DummyClassifier(),
             'subjectB': DummyClassifier(),
         })
