@@ -13,7 +13,7 @@ import numpy
 import pytest
 
 from smqtk_classifier import ClassifyDescriptor
-from smqtk_classifier.impls.supervised.libsvm import LibSvmClassifier
+from smqtk_classifier.impls.classify_descriptor_supervised.libsvm import LibSvmClassifier
 
 
 @pytest.mark.skipif(not LibSvmClassifier.is_usable(),

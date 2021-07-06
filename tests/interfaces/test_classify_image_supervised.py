@@ -1,4 +1,4 @@
-from typing import Any, Dict, Hashable, Iterable, Iterator, List, Mapping, Sequence
+from typing import Any, Dict, Hashable, Iterator, List, Mapping, Sequence
 import unittest
 import unittest.mock as mock
 import numpy as np
@@ -30,8 +30,7 @@ class DummySupervisedClassifier (ClassifyImageSupervised):
 
     def _train(
         self,
-        class_examples: Mapping[Hashable, Iterable[np.ndarray]],
-        **extra_params: Any
+        class_examples: Mapping[Hashable, IMAGE_ITER_T]
     ) -> None:
         # Expecting this to be mocked in testing, but have to override to
         # satisfy abstract baseclass fulfillment.

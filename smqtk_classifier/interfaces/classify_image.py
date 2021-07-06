@@ -54,7 +54,7 @@ class ClassifyImage (Plugfigurable):
         :raises ValueError: Input arrays were not all of consistent
             dimensionality.
 
-        :return: Iterable of dictionaries, parallel in association to the input
+        :return: Iterator of dictionaries, parallel in association to the input
             images. Each dictionary should map labels to associated
             confidence values.
         """

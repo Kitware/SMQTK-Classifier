@@ -1,6 +1,5 @@
 import abc
-from typing import Iterable, Mapping, Hashable
-import numpy as np
+from typing import Mapping, Hashable
 
 from .classify_image import ClassifyImage, IMAGE_ITER_T
 from smqtk_classifier.exceptions import ExistingModelError
@@ -57,7 +56,7 @@ class ClassifyImageSupervised(ClassifyImage):
     @abc.abstractmethod
     def _train(
         self,
-        class_examples: Mapping[Hashable, Iterable[np.ndarray]]
+        class_examples: Mapping[Hashable, IMAGE_ITER_T]
     ) -> None:
         """
         Internal method that trains the classifier implementation.

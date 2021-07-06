@@ -6,8 +6,7 @@ import numpy
 import pytest
 
 from smqtk_classifier import ClassifyDescriptor
-from smqtk_classifier.impls.classifier.classify_index_label_descriptor \
-    import ClassifyIndexLabelDescriptor
+from smqtk_classifier.impls.classify_descriptor.classify_index_label_descriptor import ClassifyIndexLabelDescriptor
 
 from tests import TEST_DATA_DIR
 
