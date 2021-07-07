@@ -4,7 +4,7 @@ import warnings
 import numpy as np
 from smqtk_descriptors import DescriptorElement
 
-from smqtk_classifier.interfaces.supervised import SupervisedClassifier
+from smqtk_classifier.interfaces.classify_descriptor_supervised import ClassifyDescriptorSupervised
 
 
 try:
@@ -22,7 +22,7 @@ except ImportError:
         """ Stub """
 
 
-class SkLearnLogisticRegression (LogisticRegression, SupervisedClassifier):
+class SkLearnLogisticRegression (LogisticRegression, ClassifyDescriptorSupervised):
     """
     Classifier implementation using Scikit Learn's LogisticRegression
     classifier.

@@ -4,12 +4,13 @@ import unittest.mock as mock
 
 from smqtk_descriptors import DescriptorElement
 
-from smqtk_classifier import SupervisedClassifier
+from smqtk_classifier import ClassifyDescriptorSupervised
 from smqtk_classifier.interfaces.classification_element import CLASSIFICATION_DICT_T
-from smqtk_classifier.interfaces.classifier import ARRAY_ITER_T
+from smqtk_classifier.interfaces.classify_descriptor import ARRAY_ITER_T
+from smqtk_classifier.exceptions import ExistingModelError
 
 
-class DummySupervisedClassifier (SupervisedClassifier):
+class DummySupervisedClassifier (ClassifyDescriptorSupervised):
 
     EXPECTED_LABELS = ['constant']
     EXPECTED_HAS_MODEL = False
@@ -56,7 +57,7 @@ class TestSupervisedClassifierAbstractClass (unittest.TestCase):
         # (or lack of things passed to the method).
         self.test_classifier.EXPECTED_HAS_MODEL = True
         self.assertRaises(
-            RuntimeError,
+            ExistingModelError,
             self.test_classifier.train, {}
         )
 
@@ -84,7 +85,7 @@ class TestSupervisedClassifierAbstractClass (unittest.TestCase):
 
     def test_train_noModel_classExamples_only(self) -> None:
         self.test_classifier.EXPECTED_HAS_MODEL = False
-        input_class_examples: Dict[str, List[DescriptorElement]] = {
+        input_class_examples: Dict[Hashable, List[DescriptorElement]] = {
             'label_1': [mock.Mock(spec=DescriptorElement)],
             'label_2': [mock.Mock(spec=DescriptorElement)],
             'label_3': [mock.Mock(spec=DescriptorElement)],

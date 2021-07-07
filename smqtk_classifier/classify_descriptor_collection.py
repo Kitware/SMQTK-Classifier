@@ -1,7 +1,7 @@
 import threading
 from typing import Any, Dict, Hashable, Iterable, List, Optional, Mapping, Sequence, Set, Type
 from types import TracebackType
-
+from warnings import warn
 import numpy as np
 
 from smqtk_core.configuration import (
@@ -18,10 +18,10 @@ from smqtk_classifier.exceptions import MissingLabelError
 from smqtk_classifier.interfaces.classification_element import ClassificationElement
 
 from ._defaults import DFLT_CLASSIFIER_FACTORY
-from .interfaces.classifier import Classifier
+from .interfaces.classify_descriptor import ClassifyDescriptor
 
 
-class ClassifierCollection (Configurable):
+class ClassifyDescriptorCollection (Configurable):
     """
     A collection of descriptively-labeled classifier instances for the purpose
     of applying all stored classifiers to one or more input descriptor
@@ -38,7 +38,7 @@ class ClassifierCollection (Configurable):
 
     EXAMPLE_KEY = '__example_label__'
 
-    def __init__(self, classifiers: Mapping[str, Classifier] = None, **labeled_classifiers: Classifier):
+    def __init__(self, classifiers: Mapping[str, ClassifyDescriptor] = None, **labeled_classifiers: ClassifyDescriptor):
         self._label_to_classifier_lock = threading.RLock()
         self._label_to_classifier = {}
 
@@ -46,13 +46,13 @@ class ClassifierCollection (Configurable):
         # are actually classifiers.
         if classifiers is not None:
             for label, classifier in classifiers.items():
-                if not isinstance(classifier, Classifier):
+                if not isinstance(classifier, ClassifyDescriptor):
                     raise ValueError("Found a non-Classifier instance value "
                                      "for key '%s'" % label)
                 self._label_to_classifier[label] = classifier
 
         for label, classifier in labeled_classifiers.items():
-            if not isinstance(classifier, Classifier):
+            if not isinstance(classifier, ClassifyDescriptor):
                 raise ValueError("Found a non-Classifier instance value "
                                  "for key '%s'" % label)
             elif label in self._label_to_classifier:
@@ -62,14 +62,14 @@ class ClassifierCollection (Configurable):
 
     @classmethod
     def get_default_config(cls) -> Dict[str, Any]:
-        c = super(ClassifierCollection, cls).get_default_config()
+        c = super(ClassifyDescriptorCollection, cls).get_default_config()
 
         # We list the label-classifier mapping on one level, so remove the
         # nested map parameter that can optionally be used in the constructor.
         del c['classifiers']
 
         # Add slot of a list of classifier plugin specifications
-        c[cls.EXAMPLE_KEY] = make_default_config(Classifier.get_impls())
+        c[cls.EXAMPLE_KEY] = make_default_config(ClassifyDescriptor.get_impls())
 
         return c
 
@@ -80,7 +80,7 @@ class ClassifierCollection (Configurable):
         cls,
         config_dict: Dict,
         merge_default: bool = True
-    ) -> "ClassifierCollection":
+    ) -> "ClassifyDescriptorCollection":
         if merge_default:
             config_dict = merge_dict(cls.get_default_config(), config_dict)
 
@@ -94,7 +94,7 @@ class ClassifierCollection (Configurable):
 
             classifier_config = config_dict[label]
             classifier = from_config_dict(classifier_config,
-                                          Classifier.get_impls())
+                                          ClassifyDescriptor.get_impls())
             classifier_map[label] = classifier
 
         return cls(classifiers=classifier_map)
@@ -106,7 +106,7 @@ class ClassifierCollection (Configurable):
                      in self._label_to_classifier.items())
         return c
 
-    def __enter__(self) -> "ClassifierCollection":
+    def __enter__(self) -> "ClassifyDescriptorCollection":
         """
         :rtype: IqrSession
         """
@@ -134,7 +134,7 @@ class ClassifierCollection (Configurable):
         with self._label_to_classifier_lock:
             return set(self._label_to_classifier.keys())
 
-    def add_classifier(self, label: str, classifier: Classifier) -> "ClassifierCollection":
+    def add_classifier(self, label: str, classifier: ClassifyDescriptor) -> "ClassifyDescriptorCollection":
         """
         Add a classifier instance with associated descriptive label to this
         collection.
@@ -148,7 +148,7 @@ class ClassifierCollection (Configurable):
 
         :return: Self.
         """
-        if not isinstance(classifier, Classifier):
+        if not isinstance(classifier, ClassifyDescriptor):
             raise ValueError("Not given a Classifier instance (given type"
                              " %s)." % type(classifier))
         with self._label_to_classifier_lock:
@@ -157,7 +157,7 @@ class ClassifierCollection (Configurable):
             self._label_to_classifier[label] = classifier
         return self
 
-    def get_classifier(self, label: str) -> Classifier:
+    def get_classifier(self, label: str) -> ClassifyDescriptor:
         """
         Get the classifier instance for a given label.
 
@@ -170,7 +170,7 @@ class ClassifierCollection (Configurable):
         with self._label_to_classifier_lock:
             return self._label_to_classifier[label]
 
-    def remove_classifier(self, label: str) -> "ClassifierCollection":
+    def remove_classifier(self, label: str) -> "ClassifyDescriptorCollection":
         """
         Remove a label-classifier pair from this collection.
 
@@ -185,7 +185,7 @@ class ClassifierCollection (Configurable):
             del self._label_to_classifier[label]
         return self
 
-    def labels_to_classifiers(self, labels: Optional[Iterable[str]] = None) -> Dict[str, Classifier]:
+    def labels_to_classifiers(self, labels: Optional[Iterable[str]] = None) -> Dict[str, ClassifyDescriptor]:
         """
         Get a shallow copy mapping of classifiers for the labels given, or for
         all classifiers if no labels were explicitly given.
@@ -283,3 +283,12 @@ class ClassifierCollection (Configurable):
         for label, classifier in label2classifier.items():
             label2pred[label] = list(classifier.classify_arrays(array_seq))
         return label2pred
+
+
+class ClassifierCollection(ClassifyDescriptorCollection):
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        warn("ClassifierCollection was renamed to "
+             "ClassifyDescriptorCollection", category=DeprecationWarning,
+             stacklevel=2)
+        super().__init__(*args, **kwargs)

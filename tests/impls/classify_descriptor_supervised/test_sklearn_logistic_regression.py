@@ -5,7 +5,7 @@ from smqtk_descriptors.impls.descriptor_element.memory import DescriptorMemoryEl
 import numpy
 import pytest
 
-from smqtk_classifier.impls.supervised.sklearn_logistic_regression import SkLearnLogisticRegression
+from smqtk_classifier.impls.classify_descriptor_supervised.sklearn_logistic_regression import SkLearnLogisticRegression
 
 
 @pytest.mark.skipif(

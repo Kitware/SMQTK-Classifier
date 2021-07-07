@@ -1,12 +1,13 @@
 import abc
-from typing import Any, Iterable, Mapping
+from typing import Any, Iterable, Mapping, Hashable
 
 from smqtk_descriptors import DescriptorElement
 
-from .classifier import Classifier
+from .classify_descriptor import ClassifyDescriptor
+from smqtk_classifier.exceptions import ExistingModelError
 
 
-class SupervisedClassifier (Classifier):
+class ClassifyDescriptorSupervised (ClassifyDescriptor):
     """
     Class of classifiers that are trainable via supervised training, i.e. are
     given specific descriptor examples for class labels.
@@ -18,12 +19,11 @@ class SupervisedClassifier (Classifier):
         :return: If this instance currently has a model loaded. If no model is
             present, classification of descriptors cannot happen (needs to be
             trained).
-        :rtype: bool
         """
 
     def train(
         self,
-        class_examples: Mapping[Any, Iterable[DescriptorElement]],
+        class_examples: Mapping[Hashable, Iterable[DescriptorElement]],
         **extra_params: Any
     ) -> None:
         """
@@ -38,7 +38,6 @@ class SupervisedClassifier (Classifier):
         :param class_examples: Dictionary mapping class labels to iterables of
             DescriptorElement training examples.
         :param extra_params: Dictionary with extra parameters for training.
-
         :raises ValueError: There were no class examples provided.
         :raises ValueError: Less than 2 classes were given.
         :raises RuntimeError: A model already exists in this instance.
@@ -46,9 +45,9 @@ class SupervisedClassifier (Classifier):
             Throwing an exception for information protection.
         """
         if self.has_model():
-            raise RuntimeError("Instance currently has a model. Halting "
-                               "training to prevent overwrite of existing "
-                               "trained model.")
+            raise ExistingModelError("Instance currently has a model. Halting "
+                                     "training to prevent overwrite of "
+                                     "existing trained model.")
 
         if not class_examples:
             raise ValueError("No class examples were provided.")
@@ -61,7 +60,7 @@ class SupervisedClassifier (Classifier):
     @abc.abstractmethod
     def _train(
         self,
-        class_examples: Mapping[Any, Iterable[DescriptorElement]],
+        class_examples: Mapping[Hashable, Iterable[DescriptorElement]],
         **extra_params: Any
     ) -> None:
         """

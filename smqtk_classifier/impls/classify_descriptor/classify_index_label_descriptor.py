@@ -1,12 +1,13 @@
 from typing import Any, Dict, Hashable, Sequence, Iterable, Iterator, Union
-
+from warnings import warn
 import numpy as np
+
 from smqtk_dataprovider import from_uri
 
-from smqtk_classifier.interfaces.classifier import Classifier
+from smqtk_classifier.interfaces.classify_descriptor import ClassifyDescriptor
 
 
-class IndexLabelClassifier (Classifier):
+class ClassifyIndexLabelDescriptor(ClassifyDescriptor):
     """
     Applies a listing of labels (new-line separated) to input "descriptor"
     values, which is actually a vector of class confidence values.
@@ -51,3 +52,12 @@ class IndexLabelClassifier (Classifier):
                     )
                 check_dim = False
             yield dict(zip(self.label_vector, d_vector))
+
+
+class IndexLabelClassifier(ClassifyIndexLabelDescriptor):
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        warn("IndexLabelClassifier was renamed to "
+             "ClassifyIndexLabelDescriptor", category=DeprecationWarning,
+             stacklevel=2)
+        super().__init__(*args, **kwargs)

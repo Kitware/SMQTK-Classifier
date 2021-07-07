@@ -12,8 +12,8 @@ from smqtk_descriptors.utils import parallel_map
 import numpy
 import pytest
 
-from smqtk_classifier import Classifier
-from smqtk_classifier.impls.supervised.libsvm import LibSvmClassifier
+from smqtk_classifier import ClassifyDescriptor
+from smqtk_classifier.impls.classify_descriptor_supervised.libsvm import LibSvmClassifier
 
 
 @pytest.mark.skipif(not LibSvmClassifier.is_usable(),
@@ -21,7 +21,7 @@ from smqtk_classifier.impls.supervised.libsvm import LibSvmClassifier
 class TestLibSvmClassifier (unittest.TestCase):
 
     def test_impl_findable(self) -> None:
-        self.assertIn(LibSvmClassifier, Classifier.get_impls())
+        self.assertIn(LibSvmClassifier, ClassifyDescriptor.get_impls())
 
     @mock.patch('smqtk_classifier.impls.supervised.libsvm.LibSvmClassifier._reload_model')
     def test_configuration(self, m_inst_load_model: mock.Mock) -> None:

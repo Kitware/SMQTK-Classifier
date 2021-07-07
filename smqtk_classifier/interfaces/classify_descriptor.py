@@ -21,7 +21,7 @@ ARRAY_ITER_T = Union[np.ndarray, Iterable[np.ndarray]]
 LOG = logging.getLogger(__name__)
 
 
-class Classifier (Plugfigurable):
+class ClassifyDescriptor (Plugfigurable):
     """
     Interface for algorithms that classify input descriptors into discrete
     labels and/or label confidences.
@@ -35,7 +35,6 @@ class Classifier (Plugfigurable):
         classifier embodies such a concept.
 
         :return: Sequence of possible classifier labels.
-        :rtype: collections.abc.Sequence[collections.abc.Hashable]
 
         :raises RuntimeError: No model loaded.
 
@@ -218,7 +217,6 @@ class Classifier (Plugfigurable):
         :return: Iterator of result ClassificationElement instances. UUIDs of
             generated ClassificationElement instances will reflect the UUID of
             the DescriptorElement it was computed from.
-        :rtype: collections.abc.Iterator[smqtk.representation.ClassificationElement]
         """
         log_debug = LOG.debug
 
