@@ -222,29 +222,17 @@ class PostgresClassificationElement (ClassificationElement):  # lgtm [py/missing
             "uuid_val": str(self.uuid)
         }
 
-        conn = self._psql_helper.get_psql_connection()
-        cur = conn.cursor()
-        try:
-            self._psql_helper.ensure_table(cur)
+        def cb(cur: psycopg2.extensions.cursor) -> None:
             cur.execute(q_select, q_select_values)
-            r = cur.fetchone()
-            # For server cleaning (e.g. pgbouncer)
-            conn.commit()
 
-            if not r:
-                raise NoClassificationError("No PSQL backed classification for "
-                                            "label='%s' uuid='%s'"
-                                            % (self.type_name, str(self.uuid)))
-            else:
-                b = r[0]
-                c = pickle.loads(b)
-                return c
-        except Exception:
-            conn.rollback()
-            raise
-        finally:
-            cur.close()
-            conn.close()
+        r = list(self._psql_helper.single_execute(cb, yield_result_rows=True))
+        if not r:
+            raise NoClassificationError("No PSQL backed classification for "
+                                        "label='%s' uuid='%s'"
+                                        % (self.type_name, str(self.uuid)))
+        else:
+            c = pickle.loads(r[0])
+            return c
 
     def set_classification(
         self,
@@ -267,17 +255,9 @@ class PostgresClassificationElement (ClassificationElement):  # lgtm [py/missing
             "uuid_val": str(self.uuid),
         }
 
-        conn = self._psql_helper.get_psql_connection()
-        cur = conn.cursor()
-        try:
-            self._psql_helper.ensure_table(cur)
+        def cb(cur: psycopg2.extensions.cursor) -> None:
             cur.execute(q_upsert, q_upsert_values)
-            cur.close()
-            conn.commit()
-        except Exception:
-            conn.rollback()
-            raise
-        finally:
-            cur.close()
-            conn.close()
+
+        list(self._psql_helper.single_execute(cb))
+
         return m
