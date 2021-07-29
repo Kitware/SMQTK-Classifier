@@ -1,0 +1,27 @@
+v0.17.0
+=======
+This minor release introduces the pending deprecation of the ``Classifier`` and
+the ``SupervisedClassifier`` interface names, subsequently renamed to
+``ClassifyDescriptor`` and ``ClassifyDescriptorSupervised``, respectively.
+We also introduce a new, image-specific interface pair: ``ClassifyImage`` and
+``ClassifyImageSupervised``.
+These interfaces follow closely to the API of the original descriptor-based
+interfaces but instead take in image matrices as the primary input to be
+described.
+
+
+Updates / New Features
+----------------------
+
+Interfaces
+
+* Classifier and SupervisedClassifier split into ClassifyImage,
+  ClassifyImageSupervised, ClassifyDescriptor, and ClassifyDescriptorSupervised
+
+* Rather than just taking in Descriptors, the SMQTK-Classifier can work
+  directly with both Descriptors and Images
+
+* Standardized Image input to follow the format of numpy matrices
+
+Fixes
+-----
