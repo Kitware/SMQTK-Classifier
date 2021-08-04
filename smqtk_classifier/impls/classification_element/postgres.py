@@ -2,9 +2,11 @@ import logging
 import pickle
 from typing import Any, Dict, Hashable, Optional
 import warnings
+from threading import RLock
 
-# TODO: This should make use of the following:
-# from smqtk_dataprovider.utils.postgres import PsqlConnectionHelper
+from smqtk_dataprovider.utils.postgres import (
+    PsqlConnectionHelper,
+)
 
 from smqtk_classifier.exceptions import NoClassificationError
 from smqtk_classifier.interfaces.classification_element import (
@@ -15,6 +17,7 @@ from smqtk_classifier.interfaces.classification_element import (
 
 
 LOG = logging.getLogger(__name__)
+GLOBAL_PSQL_TABLE_CREATE_RLOCK = RLock()
 
 
 # Try to import required modules
@@ -141,14 +144,21 @@ class PostgresClassificationElement (ClassificationElement):  # lgtm [py/missing
         self.uuid_col = uuid_col
         self.classification_col = classification_col
 
-        self.db_name = db_name
-        self.db_host = db_host
-        self.db_port = db_port
-        self.db_user = db_user
-        self.db_pass = db_pass
-
         self.pickle_protocol = pickle_protocol
         self.create_table = create_table
+
+        self._psql_helper = PsqlConnectionHelper(
+            db_name, db_host, db_port, db_user, db_pass, 10,
+            GLOBAL_PSQL_TABLE_CREATE_RLOCK
+        )
+
+        self._psql_helper.set_table_upsert_sql(
+            self.UPSERT_TABLE_TMPL.format(**dict(
+                table_name=self.table_name,
+                type_col=self.type_col,
+                uuid_col=self.uuid_col,
+                classification_col=self.classification_col,
+            )))
 
     @classmethod
     def is_usable(cls) -> bool:
@@ -161,11 +171,11 @@ class PostgresClassificationElement (ClassificationElement):  # lgtm [py/missing
             "uuid_col": self.uuid_col,
             "classification_col": self.classification_col,
 
-            "db_name": self.db_name,
-            "db_host": self.db_host,
-            "db_port": self.db_port,
-            "db_user": self.db_user,
-            "db_pass": self.db_pass,
+            "db_name": self._psql_helper.db_name,
+            "db_host": self._psql_helper.db_host,
+            "db_port": self._psql_helper.db_port,
+            "db_user": self._psql_helper.db_user,
+            "db_pass": self._psql_helper.db_pass,
 
             "pickle_protocol": self.pickle_protocol,
             "create_table": self.create_table,
@@ -184,40 +194,15 @@ class PostgresClassificationElement (ClassificationElement):  # lgtm [py/missing
         self.type_col = state['type_col']
         self.uuid_col = state['uuid_col']
         self.classification_col = state['classification_col']
-        self.db_name = state['db_name']
-        self.db_host = state['db_host']
-        self.db_port = state['db_port']
-        self.db_user = state['db_user']
-        self.db_pass = state['db_pass']
+
+        self._psql_helper.db_name = state['db_name']
+        self._psql_helper.db_host = state['db_host']
+        self._psql_helper.db_port = state['db_port']
+        self._psql_helper.db_user = state['db_user']
+        self._psql_helper.db_pass = state['db_pass']
+
         self.pickle_protocol = state['pickle_protocol']
         self.create_table = state['create_table']
-
-    def _get_psql_connection(self) -> "psycopg2.extensions.connection":
-        """
-        :return: A new connection to the configured database
-        """
-        return psycopg2.connect(
-            database=self.db_name,
-            user=self.db_user,
-            password=self.db_pass,
-            host=self.db_host,
-            port=self.db_port,
-        )
-
-    def _ensure_table(self, cursor: "psycopg2.extensions.cursor") -> None:
-        """
-        Execute on psql connector cursor the table create-of-not-exists query.
-
-        :param cursor: Connection active cursor.
-        """
-        if self.create_table:
-            q_table_upsert = self.UPSERT_TABLE_TMPL.format(**dict(
-                table_name=self.table_name,
-                type_col=self.type_col,
-                uuid_col=self.uuid_col,
-                classification_col=self.classification_col,
-            ))
-            cursor.execute(q_table_upsert)
 
     def has_classifications(self) -> bool:
         try:
@@ -237,29 +222,17 @@ class PostgresClassificationElement (ClassificationElement):  # lgtm [py/missing
             "uuid_val": str(self.uuid)
         }
 
-        conn = self._get_psql_connection()
-        cur = conn.cursor()
-        try:
-            self._ensure_table(cur)
+        def cb(cur: psycopg2.extensions.cursor) -> None:
             cur.execute(q_select, q_select_values)
-            r = cur.fetchone()
-            # For server cleaning (e.g. pgbouncer)
-            conn.commit()
 
-            if not r:
-                raise NoClassificationError("No PSQL backed classification for "
-                                            "label='%s' uuid='%s'"
-                                            % (self.type_name, str(self.uuid)))
-            else:
-                b = r[0]
-                c = pickle.loads(b)
-                return c
-        except Exception:
-            conn.rollback()
-            raise
-        finally:
-            cur.close()
-            conn.close()
+        r = list(self._psql_helper.single_execute(cb, yield_result_rows=True))
+        if not r:
+            raise NoClassificationError("No PSQL backed classification for "
+                                        "label='%s' uuid='%s'"
+                                        % (self.type_name, str(self.uuid)))
+        else:
+            c = pickle.loads(r[0])
+            return c
 
     def set_classification(
         self,
@@ -282,17 +255,9 @@ class PostgresClassificationElement (ClassificationElement):  # lgtm [py/missing
             "uuid_val": str(self.uuid),
         }
 
-        conn = self._get_psql_connection()
-        cur = conn.cursor()
-        try:
-            self._ensure_table(cur)
+        def cb(cur: psycopg2.extensions.cursor) -> None:
             cur.execute(q_upsert, q_upsert_values)
-            cur.close()
-            conn.commit()
-        except Exception:
-            conn.rollback()
-            raise
-        finally:
-            cur.close()
-            conn.close()
+
+        list(self._psql_helper.single_execute(cb))
+
         return m
