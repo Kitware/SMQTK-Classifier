@@ -35,8 +35,7 @@ class DummySupervisedClassifier (ClassifyDescriptorSupervised):
 
     def _train(
         self,
-        class_examples: Mapping[Hashable, Iterable[DescriptorElement]],
-        **extra_params: Any
+        class_examples: Mapping[Hashable, Iterable[DescriptorElement]]
     ) -> None:
         # Expecting this to be mocked in testing, but have to override to
         # satisfy abstract baseclass fulfillment.

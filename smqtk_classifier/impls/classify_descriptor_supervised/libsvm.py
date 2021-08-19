@@ -244,8 +244,7 @@ class LibSvmClassifier (ClassifyDescriptorSupervised):
 
     def _train(
         self,
-        class_examples: Mapping[Any, Iterable[DescriptorElement]],
-        **extra_params: Any
+        class_examples: Mapping[Any, Iterable[DescriptorElement]]
     ) -> None:
         # Offset from 0 for positive class labels to use
         # - not using label of 0 because we think libSVM wants positive labels

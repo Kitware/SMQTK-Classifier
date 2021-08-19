@@ -1,5 +1,5 @@
 import abc
-from typing import Any, Iterable, Mapping, Hashable
+from typing import Iterable, Mapping, Hashable
 
 from smqtk_descriptors import DescriptorElement
 
@@ -23,8 +23,7 @@ class ClassifyDescriptorSupervised (ClassifyDescriptor):
 
     def train(
         self,
-        class_examples: Mapping[Hashable, Iterable[DescriptorElement]],
-        **extra_params: Any
+        class_examples: Mapping[Hashable, Iterable[DescriptorElement]]
     ) -> None:
         """
         Train the supervised classifier model.
@@ -37,7 +36,6 @@ class ClassifyDescriptorSupervised (ClassifyDescriptor):
 
         :param class_examples: Dictionary mapping class labels to iterables of
             DescriptorElement training examples.
-        :param extra_params: Dictionary with extra parameters for training.
         :raises ValueError: There were no class examples provided.
         :raises ValueError: Less than 2 classes were given.
         :raises RuntimeError: A model already exists in this instance.
@@ -55,13 +53,12 @@ class ClassifyDescriptorSupervised (ClassifyDescriptor):
             raise ValueError("Need 2 or more classes for training. Given %d."
                              % len(class_examples))
 
-        return self._train(class_examples, **extra_params)
+        return self._train(class_examples)
 
     @abc.abstractmethod
     def _train(
         self,
-        class_examples: Mapping[Hashable, Iterable[DescriptorElement]],
-        **extra_params: Any
+        class_examples: Mapping[Hashable, Iterable[DescriptorElement]]
     ) -> None:
         """
         Internal method that trains the classifier implementation.
@@ -75,5 +72,4 @@ class ClassifyDescriptorSupervised (ClassifyDescriptor):
 
         :param class_examples: Dictionary mapping class labels to iterables of
             DescriptorElement training examples.
-        :param extra_params: Dictionary with extra parameters for training.
         """

@@ -5,6 +5,8 @@ Pending Release Notes
 Updates / New Features
 ----------------------
 
+* Removed `extra_params` training parameter from `_train` functions because it
+  affected the modularity of the interface.
 
 Implementations
 

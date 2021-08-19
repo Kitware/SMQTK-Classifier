@@ -49,8 +49,7 @@ class SkLearnLogisticRegression (LogisticRegression, ClassifyDescriptorSupervise
 
     def _train(
         self,
-        class_examples: Mapping[Any, Iterable[DescriptorElement]],
-        **extra_params: Any
+        class_examples: Mapping[Any, Iterable[DescriptorElement]]
     ) -> None:
         # convert descriptor elements into combines ndarray with associated
         # label vector.
