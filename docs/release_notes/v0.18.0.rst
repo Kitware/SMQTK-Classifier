@@ -1,6 +1,8 @@
-Pending Release Notes
-=====================
-
+v0.18.0
+=======
+This minor release improves modularity in the classify interfaces by
+removing `extra_params` and includes the utilization of the `postgres`
+helpers from SMQTK-Dataprovider.
 
 Updates / New Features
 ----------------------
