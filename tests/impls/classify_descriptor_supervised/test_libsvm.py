@@ -73,7 +73,7 @@ class TestLibSvmClassifier (unittest.TestCase):
 
         def make_element(iv: Tuple[int, numpy.ndarray]) -> DescriptorElement:
             i, v = iv
-            d = d_factory.new_descriptor('test', i)
+            d = d_factory.new_descriptor(i)
             d.set_vector(v)
             return d
 
@@ -136,7 +136,7 @@ class TestLibSvmClassifier (unittest.TestCase):
 
         def make_element(iv: Tuple[int, numpy.ndarray]) -> DescriptorElement:
             _i, _v = iv
-            elem = d_factory.new_descriptor('test', _i)
+            elem = d_factory.new_descriptor(_i)
             elem.set_vector(_v)
             return elem
 
@@ -201,7 +201,7 @@ class TestLibSvmClassifier (unittest.TestCase):
 
         def make_element(iv: Tuple[int, numpy.ndarray]) -> DescriptorElement:
             _i, _v = iv
-            elem = d_factory.new_descriptor('test', _i)
+            elem = d_factory.new_descriptor(_i)
             elem.set_vector(_v)
             return elem
 
