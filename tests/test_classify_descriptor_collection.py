@@ -241,7 +241,7 @@ class TestClassifyDescriptorCollection (unittest.TestCase):
         })
 
         d_v = np.array([0, 1, 2, 3, 4])
-        d = DescriptorMemoryElement('memory', '0')
+        d = DescriptorMemoryElement('0')
         d.set_vector(d_v)
         result = ccol.classify(d)
 
@@ -292,7 +292,7 @@ class TestClassifyDescriptorCollection (unittest.TestCase):
         classifierB.classify_one_element = mock.Mock()  # type: ignore
 
         d_v = [0, 1, 2, 3, 4]
-        d = DescriptorMemoryElement('memory', '0')
+        d = DescriptorMemoryElement('0')
         d.set_vector(d_v)
         result = ccol.classify(d, labels=['subjectA'])
 
@@ -322,7 +322,7 @@ class TestClassifyDescriptorCollection (unittest.TestCase):
         classifierB.classify_one_element = mock.Mock()  # type: ignore
 
         d_v = [0, 1, 2, 3, 4]
-        d = DescriptorMemoryElement('memory', '0')
+        d = DescriptorMemoryElement('0')
         d.set_vector(d_v)
         result = ccol.classify(d, labels=[])
 
@@ -340,7 +340,7 @@ class TestClassifyDescriptorCollection (unittest.TestCase):
         })
 
         d_v = [0, 1, 2, 3, 4]
-        d = DescriptorMemoryElement('memory', '0')
+        d = DescriptorMemoryElement('0')
         d.set_vector(d_v)
 
         # Should throw a MissingLabelError

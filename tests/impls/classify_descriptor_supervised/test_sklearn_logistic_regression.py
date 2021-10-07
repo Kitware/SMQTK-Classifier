@@ -57,9 +57,9 @@ class TestSklearnLogisticRegressionClassifier (unittest.TestCase):
         #   test.
         train1 = numpy.interp(numpy.random.rand(N), [0, 1], [0.0, .45])[:, numpy.newaxis]
         train2 = numpy.interp(numpy.random.rand(N), [0, 1], [.55, 1.0])[:, numpy.newaxis]
-        train1_e = [DescriptorMemoryElement('test', i).set_vector(v)
+        train1_e = [DescriptorMemoryElement(i).set_vector(v)
                     for i, v in enumerate(train1)]
-        train2_e = [DescriptorMemoryElement('test', i).set_vector(v)
+        train2_e = [DescriptorMemoryElement(i).set_vector(v)
                     for i, v in enumerate(train2, start=len(train1_e))]
 
         # Set up artificial test set.
@@ -99,11 +99,11 @@ class TestSklearnLogisticRegressionClassifier (unittest.TestCase):
         train2 = numpy.interp(numpy.random.rand(N), [0, 1], [.40, .60])[:, numpy.newaxis]
         train3 = numpy.interp(numpy.random.rand(N), [0, 1], [.70, 1.0])[:, numpy.newaxis]
 
-        train1_e = [DescriptorMemoryElement('train', i).set_vector(v)
+        train1_e = [DescriptorMemoryElement(i).set_vector(v)
                     for i, v in enumerate(train1)]
-        train2_e = [DescriptorMemoryElement('train', i).set_vector(v)
+        train2_e = [DescriptorMemoryElement(i).set_vector(v)
                     for i, v in enumerate(train2, start=len(train1_e))]
-        train3_e = [DescriptorMemoryElement('train', i).set_vector(v)
+        train3_e = [DescriptorMemoryElement(i).set_vector(v)
                     for i, v
                     in enumerate(train3,
                                  start=len(train1_e) + len(train2_e))]
