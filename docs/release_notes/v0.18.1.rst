@@ -1,0 +1,7 @@
+v0.18.1
+=======
+
+Fixes
+-----
+
+* Update ``smqtk-descriptors`` requirement to the latest patched version.

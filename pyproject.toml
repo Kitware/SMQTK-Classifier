@@ -36,7 +36,7 @@ python = "^3.6"
 numpy = "^1.19.5"
 smqtk-core = ">=0.18.0"
 smqtk-dataprovider = ">=0.16.0"
-smqtk-descriptors = ">=0.16.0"
+smqtk-descriptors = ">=0.16.2"
 scikit-learn = {version = "^0.24.1", optional = true}
 
 [tool.poetry.extras]
