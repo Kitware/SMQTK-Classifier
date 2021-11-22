@@ -62,6 +62,7 @@ pytest-cov = "^2.11.1"
 ipython = "^7.16"
 # because 0.18 does not work with ipy 7.16.1 in py3.6
 jedi = "^0.17"
+joblib = "^1.1"
 
 [tool.poetry.plugins."smqtk_plugins"]
 # ClassificationElement
@@ -73,6 +74,7 @@ jedi = "^0.17"
 # Supervised
 "smqtk_classifier.impls.classify_descriptor_supervised.libsvm" = "smqtk_classifier.impls.classify_descriptor_supervised.libsvm"
 "smqtk_classifier.impls.classify_descriptor_supervised.sklearn_logistic_regression" = "smqtk_classifier.impls.classify_descriptor_supervised.sklearn_logistic_regression"
+"smqtk_classifier.impls.classify_descriptor_supervised.sklearn_svm" = "smqtk_classifier.impls.classify_descriptor_supervised.sklearn_svm"
 
 ###############################################################################
 [tool.pytest.ini_options]
