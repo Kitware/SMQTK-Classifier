@@ -1,38 +1,16 @@
-import collections.abc
-from copy import deepcopy
-import ctypes
 import logging
-import os
 import pickle
-import tempfile
 from typing import Any, Dict, Hashable, Iterable, Iterator, Mapping, Optional, Sequence, Union
 import warnings
-import joblib
 
-import numpy
 import numpy as np
-import numpy.linalg
 
 from smqtk_dataprovider import from_uri
 from smqtk_descriptors import DescriptorElement
-from smqtk_descriptors.utils import parallel_map
 
-from smqtk_classifier.interfaces.classify_descriptor import CLASSIFICATION_DICT_T
 from smqtk_classifier.interfaces.classify_descriptor_supervised import ClassifyDescriptorSupervised
 
-
 LOG = logging.getLogger(__name__)
-SVM_PARAM_MAPPING_T = Mapping[str, Union[int, float, str]]
-
-
-try:
-    # noinspection PyPackageRequirements
-    import scipy.stats  # type: ignore
-except ImportError:
-    warnings.warn(
-        "scipy.stats not importable: SkLearnSvmClassifier will not be usable."
-    )
-    scipy = None
 
 try:
     from sklearn import svm
@@ -53,154 +31,61 @@ class SkLearnSvmClassifier (ClassifyDescriptorSupervised):
     (default), no model is loaded nor output via training, thus any model
     trained will only exist in memory during the lifetime of this instance.
 
-    **Note**: *If pickled without a having model file paths configured, this
-    implementation will write out temporary files upon pickling and loading.
-    This is required because the model instance is not transportable via
-    serialization due to libSVM being an external C library.*
-
-    :param svm_model_uri: Path to the libSVM model file.
-    :param svm_label_map_uri: Path to the pickle file containing this
-        model's output labels.
-    :param train_params: SVM parameters used for training. See libSVM
-        documentation for parameter flags and values. A parameter with no value
-        on the SVM CLI should be given an empty string value,
-        E.g. `{"-q": ""}`.
+    :param svm_model_uri: Path to the model file.
+    :param C: Regularization parameter passed to SkLearn SVM SVC model.
+    :param kernel: Kernel type passed to SkLearn SVM SVC model.
+    :probability: Whether to enable probability estimates or not.
     :param normalize: Normalize input vectors to training and
         classification methods using ``numpy.linalg.norm``. This may either
         be  ``None``, disabling normalization, or any valid value that
         could be passed to the ``ord`` parameter in ``numpy.linalg.norm``
         for 1D arrays. This is ``None`` by default (no normalization).
-    :param n_jobs:
-        Number of processes to use to parallelize prediction. If None or a
-        negative value, all cores are used.
     """
 
     # noinspection PyDefaultArgument
     def __init__(
         self,
         svm_model_uri: Optional[str] = None,
-        svm_label_map_uri: Optional[str] = None,
-        train_params: SVM_PARAM_MAPPING_T = {
-            '-s': 0,  # C-SVC, assumed default if not provided
-            '-t': 0,  # linear kernel
-            '-b': 1,  # enable probability estimates
-            '-c': 2,  # SVM parameter C
-        },
+        C: float = 2.0,  # Regularization parameter
+        kernel: str = 'linear',  # Kernel type
+        probability: bool = True,  # Enable probabilty estimates
         normalize: Optional[Union[int, float, str]] = None,
-        n_jobs: Optional[int] = 4,
     ):
         super(SkLearnSvmClassifier, self).__init__()
 
         self.svm_model_uri = svm_model_uri
-        self.svm_label_map_uri = svm_label_map_uri
 
         # Elements will be None if input URI is None
         #: :type: None | smqtk.representation.DataElement
         self.svm_model_elem = \
             svm_model_uri and from_uri(svm_model_uri)
-        #: :type: None | smqtk.representation.DataElement
-        self.svm_label_map_elem = \
-            svm_label_map_uri and from_uri(svm_label_map_uri)
 
-        # Shallow copy to shield from modifying input.
-        self.train_params = dict(train_params)
+        self.C = C
+        self.kernel = kernel
+        self.probability = probability
         self.normalize = normalize
-        self.n_jobs = n_jobs
+
         # Validate normalization parameter by trying it on a random vector
         if normalize is not None:
-            self._norm_vector(numpy.random.rand(8))
+            self._norm_vector(np.random.rand(8))
 
         # generated parameters
         self.svm_model: Optional[svm.svm_model] = None
-        # dictionary mapping SVM integer labels to semantic labels
-        self.svm_label_map: Dict[int, Hashable] = {}
 
         self._reload_model()
 
     @classmethod
     def is_usable(cls) -> bool:
-        return None not in {scipy, svm}
+        return svm is not None
 
     def get_config(self) -> Dict[str, Any]:
         return {
             "svm_model_uri": self.svm_model_uri,
-            "svm_label_map_uri": self.svm_label_map_uri,
-            "train_params": self.train_params,
+            "C": self.C,
+            "kernel": self.kernel,
+            "probability": self.probability,
             "normalize": self.normalize,
-            "n_jobs": self.n_jobs,
         }
-
-    def __getstate__(self) -> Any:
-        # If we don't have a model, or if we have one but its not being saved
-        # to files.
-        if not self.has_model() or (self.svm_model_uri is not None and
-                                    self.svm_label_map_uri is not None):
-            return self.get_config()
-        else:
-            LOG.debug("Saving model to temp file for pickling")
-            fd, fp = tempfile.mkstemp()
-            try:
-                os.close(fd)
-
-                state = self.get_config()
-                state['__LOCAL__'] = True
-                state['__LOCAL_LABELS__'] = self.svm_label_map
-
-                joblib.dump(self.svm_model, fp)
-                with open(fp, 'rb') as model_f:
-                    state['__LOCAL_MODEL__'] = model_f.read()
-
-                return state
-            finally:
-                os.remove(fp)
-
-    def __setstate__(self, state: Any) -> None:
-        self.__dict__.update(state)
-
-        self.svm_model_elem = \
-            self.svm_model_uri and from_uri(self.svm_model_uri)
-        self.svm_label_map_elem = \
-            self.svm_label_map_uri and from_uri(self.svm_label_map_uri)
-
-        # C libraries/pointers don't survive across processes.
-        if '__LOCAL__' in state:
-            # These would have gotten copied into dict during the updated.
-            # The instance doesn't need to keep them around after this.
-            del self.__dict__['__LOCAL__']
-            del self.__dict__['__LOCAL_LABELS__']
-            del self.__dict__['__LOCAL_MODEL__']
-
-            fd, fp = tempfile.mkstemp()
-            try:
-                os.close(fd)
-
-                self.svm_label_map = state['__LOCAL_LABELS__']
-
-                # write model to file, then load via joblib
-                with open(fp, 'wb') as model_f:
-                    model_f.write(state['__LOCAL_MODEL__'])
-
-                fp_bytes = fp.encode('utf8')
-                self.svm_model = joblib.load(fp_bytes)
-
-                if isinstance(self.svm_model, svm.SVC):
-                    self.svm_type = 'C-SVC'
-                elif isinstance(self.svm_model, svm.NuSVC):
-                    self.svm_type = 'nu-SVC'
-                elif isinstance(self.svm_model, svm.OneClassSVM):
-                    self.svm_type = 'one-class SVM'
-                elif isinstance(self.svm_model, svm.SVR):
-                    self.svm_type = 'epsilon-SVR'
-                elif isinstance(self.svm_model, svm.NuSVR):
-                    self.svm_type = 'nu-SVR'
-                else:
-                    raise RuntimeError("Invalid SVM model type loaded.")
-
-            finally:
-                os.remove(fp)
-        else:
-            self.svm_model = None
-            self._reload_model()
 
     def _reload_model(self) -> None:
         """
@@ -208,20 +93,9 @@ class SkLearnSvmClassifier (ClassifyDescriptorSupervised):
         """
         if self.svm_model_elem and not self.svm_model_elem.is_empty():
             svm_model_tmp_fp = self.svm_model_elem.write_temp()
-            self.svm_model = joblib.load(svm_model_tmp_fp)
+            with open(svm_model_tmp_fp, 'rb') as f:
+                self.svm_model = pickle.load(f)
             self.svm_model_elem.clean_temp()
-
-        if self.svm_label_map_elem and not self.svm_label_map_elem.is_empty():
-            self.svm_label_map = \
-                pickle.loads(self.svm_label_map_elem.get_bytes())
-
-    @staticmethod
-    def _gen_param_string(params: SVM_PARAM_MAPPING_T) -> str:
-        """
-        Make a single string out of a parameters dictionary
-        """
-        return ' '.join((str(k) + ' ' + str(v)
-                         for k, v in params.items()))
 
     def _norm_vector(self, v: np.ndarray) -> np.ndarray:
         """
@@ -233,8 +107,8 @@ class SkLearnSvmClassifier (ClassifyDescriptorSupervised):
         :return: Returns the normalized version of input array ``v``.
         """
         if self.normalize is not None:
-            n = numpy.linalg.norm(v, self.normalize, v.ndim - 1,
-                                  keepdims=True)
+            n = np.linalg.norm(v, self.normalize, v.ndim - 1,
+                               keepdims=True)
             # replace 0's with 1's, preventing div-by-zero
             n[n == 0.] = 1.
             return v / n
@@ -248,27 +122,14 @@ class SkLearnSvmClassifier (ClassifyDescriptorSupervised):
             present, classification of descriptors cannot happen.
         :rtype: bool
         """
-        return None not in (self.svm_model, self.svm_label_map)
+        return self.svm_model is not None
 
     def _train(
         self,
         class_examples: Mapping[Any, Iterable[DescriptorElement]]
     ) -> None:
-        # Offset from 0 for positive class labels to use
-        # - not using label of 0 because we think libSVM wants positive labels
-        CLASS_LABEL_OFFSET = 1
-
-        # Stuff for debug reporting
-        param_debug = {'-q': ''}
-        if LOG.getEffectiveLevel() <= logging.DEBUG:
-            param_debug = {}
-
-        # Form libSVM problem input values
-        LOG.debug("Formatting problem input")
         train_labels = []
         train_vectors = []
-        train_group_sizes = []  # number of examples per class
-        self.svm_label_map = {}
         # Making SVM label assignment deterministic to lexicographical order
         # of the type repr.
         # -- Can't specifically guarantee that dict key types will all support
@@ -277,173 +138,56 @@ class SkLearnSvmClassifier (ClassifyDescriptorSupervised):
         #    keys will be strings and ints, but this "should" handle more
         #    exotic cases, at least for the purpose of ordering keys reasonably
         #    deterministically.
-        for i, l in enumerate(sorted(class_examples, key=lambda e: str(e)), CLASS_LABEL_OFFSET):
-            # Map integer SVM label to semantic label
-            self.svm_label_map[i] = l
-
-            LOG.debug('-- class %d (%s)', i, l)
-            # requires a sequence, so making the iterable ``g`` a tuple
-            g = class_examples[l]
-            if not isinstance(g, collections.abc.Sequence):
-                LOG.debug('   (expanding iterable into sequence)')
-                g = tuple(g)
-
-            train_group_sizes.append(float(len(g)))
-            x = numpy.array(DescriptorElement.get_many_vectors(g))
+        for i, l in enumerate(sorted(class_examples, key=lambda e: str(e))):
+            x = np.array(DescriptorElement.get_many_vectors(class_examples[l]))
             x = self._norm_vector(x)
-            train_labels.extend([i] * x.shape[0])
+
+            train_labels.extend([l] * x.shape[0])
             train_vectors.extend(x.tolist())
-            del g, x
+            del x
 
         assert len(train_labels) == len(train_vectors), \
             "Count mismatch between parallel labels and descriptor vectors" \
-            "being sent to libSVM (%d != %d)" \
+            "(%d != %d)" \
             % (len(train_labels), len(train_vectors))
 
-        LOG.debug("Forming train params")
-        params = deepcopy(self.train_params)
-        params.update(param_debug)
-
-        # Calculating class weights if set to C-SVC type SVM
-        weights = {}
-        if '-s' not in params or int(params['-s']) == 0:
-            # (john.moeller): The weighting should probably be the geometric
-            # mean of the number of examples over the classes divided by the
-            # number of examples for the current class.
-            gmean = scipy.stats.gmean(train_group_sizes)
-            for i, n in enumerate(train_group_sizes, CLASS_LABEL_OFFSET):
-                w = gmean / n
-                weights[i] = w
-                LOG.debug("-- class '%s' weight: %s", self.svm_label_map[i], w)
-
-        svm_map: Dict[Any, str] = {0: 'C-SVC', 1: 'nu-SVC', 2: 'one-class SVM', 3: 'epsilon-SVR', 4: 'nu-SVR'}
-        kernel_map: Dict[Any, str] = {0: 'linear', 1: 'poly', 2: 'rbf', 3: 'sigmoid'}
-        probability_map: Dict[Any, bool] = {0: False, 1: True}
-
-        if '-s' not in params:
-            self.svm_type = 'C-SVC'
-        else:
-            self.svm_type = svm_map[params['-s']]
-
-        # Create sklearn SVM instance
-        if self.svm_type == 'C-SVC':
-            self.svm_model = svm.SVC(C=self.train_params['-c'],
-                                     kernel=kernel_map[params['-t']],
-                                     probability=probability_map[params['-b']],
-                                     class_weight=weights)
-        elif self.svm_type == 'nu-SVC':
-            self.svm_model = svm.NuSVC(kernel=kernel_map[params['-t']],
-                                       probability=probability_map[params['-b']])
-        elif self.svm_type == 'one-class SVM':
-            self.svm_model = svm.OneClassSVM(kernel=kernel_map[params['-t']])
-        elif self.svm_type == 'epsilon-SVR':
-            self.svm_model = svm.SVR(C=self.train_params['-c'],
-                                     kernel=kernel_map[params['-t']])
-        elif self.svm_type == 'nu-SVR':
-            self.svm_model = svm.NuSVR(C=self.train_params['-c'],
-                                       kernel=kernel_map[params['-t']])
+        self.svm_model = svm.SVC(C=self.C,
+                                 kernel=self.kernel,
+                                 probability=self.probability)
 
         LOG.debug("Training SVM model")
         self.svm_model.fit(train_vectors, train_labels)  # type: ignore
-        LOG.debug("Training SVM model -- Done")
 
-        if self.svm_label_map_elem and self.svm_label_map_elem.writable():
-            LOG.debug("saving labels to element (%s)", self.svm_label_map_elem)
-            self.svm_label_map_elem.set_bytes(
-                pickle.dumps(self.svm_label_map, -1)
-            )
         if self.svm_model_elem and self.svm_model_elem.writable():
-            LOG.debug("saving model to element (%s)", self.svm_model_elem)
-            # LibSvm I/O only works with filepaths, thus the need for an
-            # intermediate temporary file.
-            fd, fp = tempfile.mkstemp()
-            try:
-                joblib.dump(self.svm_model, fp)
-                # Use the file descriptor to create the file object.
-                # This avoids reopening the file and will automatically
-                # close the file descriptor on exiting the with block.
-                # fdopen() is required because in Python 2 open() does
-                # not accept a file descriptor.
-                with os.fdopen(fd, 'rb') as f:
-                    self.svm_model_elem.set_bytes(f.read())
-            finally:
-                os.remove(fp)
+            LOG.debug("Saving model to element (%s)", self.svm_model_elem)
+            self.svm_model_elem.set_bytes(pickle.dumps(self.svm_model))
 
     def get_labels(self) -> Sequence[Hashable]:
         if not self.has_model():
             raise RuntimeError("No model loaded")
-        return list(self.svm_label_map.values())
+
+        return list(self.svm_model.classes_)  # type: ignore
 
     def _classify_arrays(self, array_iter: Union[np.ndarray, Iterable[np.ndarray]]) -> Iterator[Dict[Hashable, float]]:
         if not self.has_model():
             raise RuntimeError("No SVM model present for classification")
-        assert self.svm_model is not None, (
-            "Should have an SVM model at this point."
-        )
 
         # Dump descriptors into a matrix for normalization and use in
         # prediction.
-        vec_mat = numpy.array(list(array_iter))
+        vec_mat = np.array(list(array_iter))
         vec_mat = self._norm_vector(vec_mat)
-        n_jobs = self.n_jobs
-        if n_jobs is not None:
-            n_jobs = min(len(vec_mat), n_jobs)
-        # Else: `n_jobs` is `None`, which is OK as it's the default  value for
-        # parallel_map.
-
-        svm_label_map = self.svm_label_map
-        c_base = dict((la, 0.) for la in svm_label_map.values())
 
         svm_model_labels = self.get_labels()
-        nr_class = len(svm_model_labels)
 
-        # TODO: Normalize input arrays in batch(es). TEST if current norm
-        #       function can just take a matrix?
-
-        if self.svm_model.probability:
-            if self.svm_type in ['nu-SVR', 'epsilon-SVR']:
-                nr_class = 0
-
-            def single_pred(v: np.ndarray) -> CLASSIFICATION_DICT_T:
-                prob_estimates = (ctypes.c_double * nr_class)()
-                prob_estimates[:nr_class] = self.svm_model.predict_proba(v.reshape(1, -1))[0]  # type: ignore
-                c = dict(c_base)  # Shallow copy
-                c.update({label: prob for label, prob
-                          in zip(svm_model_labels, prob_estimates[:nr_class])})
-                return c
-
-            # If n_jobs == 1, just be serial
-            if n_jobs == 1:
-                return (single_pred(v) for v in vec_mat)
-            else:
-                return parallel_map(single_pred, vec_mat,
-                                    cores=n_jobs,
-                                    use_multiprocessing=True)
+        if self.svm_model.probability:  # type: ignore
+            proba_mat = self.svm_model.predict_proba(vec_mat)  # type: ignore
+            for proba in proba_mat:
+                yield dict(zip(svm_model_labels, proba))
         else:
-            def single_label(v: np.ndarray) -> CLASSIFICATION_DICT_T:
-                if self.svm_type in ['epsilon-SVR', 'nu-SVR']:
-                    prediction = self.svm_model.predict(v.reshape(1, -1))  # type: ignore
-                    prediction_idx = np.argmin(np.abs(np.ndarray(list(self.svm_label_map.keys())) - prediction))
-                    prediction = list(self.svm_label_map.keys())[prediction_idx]
-                elif self.svm_type in ['one-class SVM']:
-                    prediction = self.svm_model.predict(v.reshape(1, -1))[0]  # type: ignore
+            c_base = {label: 0.0 for label in svm_model_labels}
 
-                    # map -1 or 1 prediction to svm label map
-                    if prediction == -1:  # negative prediction
-                        prediction = 1
-                    else:  # positive prediction
-                        prediction = 2
-                else:
-                    prediction = self.svm_model.predict(v.reshape(1, -1))[0]  # type: ignore
-
-                c = dict(c_base)  # Shallow copy
-                c[svm_label_map[prediction]] = 1.
-                return c
-
-            # If n_jobs == 1, just be serial
-            if n_jobs == 1:
-                return (single_label(v) for v in vec_mat)
-            else:
-                return parallel_map(single_label, vec_mat,
-                                    cores=n_jobs,
-                                    use_multiprocessing=True)
+            proba_mat = self.svm_model.predict(vec_mat)  # type: ignore
+            for p in proba_mat:
+                c = dict(c_base)
+                c[p] = 1.0
+                yield c
