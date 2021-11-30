@@ -1,3 +1,4 @@
+import collections
 import logging
 import pickle
 from typing import Any, Dict, Hashable, Iterable, Iterator, Mapping, Optional, Sequence, Union
@@ -13,6 +14,15 @@ from smqtk_classifier.interfaces.classify_descriptor_supervised import ClassifyD
 LOG = logging.getLogger(__name__)
 
 try:
+    # noinspection PyPackageRequirements
+    import scipy.stats  # type: ignore
+except ImportError:
+    warnings.warn(
+        "scipy.stats not importable: SkLearnSvmClassifier will not be usable."
+    )
+    scipy = None
+
+try:
     from sklearn import svm
 except ImportError:
     warnings.warn(
@@ -23,7 +33,8 @@ except ImportError:
 
 class SkLearnSvmClassifier (ClassifyDescriptorSupervised):
     """
-    Classifier that uses SkLearn for support-vector machine functionality.
+    Classifier that wraps the SkLearn SVM (Support Vector Machine)
+    SVC (C-Support Vector Classification) module.
 
     Model file paths are optional. If they are given and the file(s) exist,
     we will load them. If they do not, we treat the path(s) as the output
@@ -34,7 +45,10 @@ class SkLearnSvmClassifier (ClassifyDescriptorSupervised):
     :param svm_model_uri: Path to the model file.
     :param C: Regularization parameter passed to SkLearn SVM SVC model.
     :param kernel: Kernel type passed to SkLearn SVM SVC model.
-    :probability: Whether to enable probability estimates or not.
+    :param probability: Whether to enable probability estimates or not.
+    :param calculate_class_weights: Whether to manually calculate the
+        class weights to be passed to the SVM model or not.
+        Defaults to true. If false, all classes will be given equal weight.
     :param normalize: Normalize input vectors to training and
         classification methods using ``numpy.linalg.norm``. This may either
         be  ``None``, disabling normalization, or any valid value that
@@ -49,6 +63,7 @@ class SkLearnSvmClassifier (ClassifyDescriptorSupervised):
         C: float = 2.0,  # Regularization parameter
         kernel: str = 'linear',  # Kernel type
         probability: bool = True,  # Enable probabilty estimates
+        calculate_class_weights: bool = True,  # Enable calculation of class weights
         normalize: Optional[Union[int, float, str]] = None,
     ):
         super(SkLearnSvmClassifier, self).__init__()
@@ -63,6 +78,7 @@ class SkLearnSvmClassifier (ClassifyDescriptorSupervised):
         self.C = C
         self.kernel = kernel
         self.probability = probability
+        self.calculate_class_weights = calculate_class_weights
         self.normalize = normalize
 
         # Validate normalization parameter by trying it on a random vector
@@ -70,13 +86,13 @@ class SkLearnSvmClassifier (ClassifyDescriptorSupervised):
             self._norm_vector(np.random.rand(8))
 
         # generated parameters
-        self.svm_model: Optional[svm.svm_model] = None
+        self.svm_model: Optional[svm.SVC] = None
 
         self._reload_model()
 
     @classmethod
     def is_usable(cls) -> bool:
-        return svm is not None
+        return None not in {scipy, svm}
 
     def get_config(self) -> Dict[str, Any]:
         return {
@@ -84,6 +100,7 @@ class SkLearnSvmClassifier (ClassifyDescriptorSupervised):
             "C": self.C,
             "kernel": self.kernel,
             "probability": self.probability,
+            "calculate_class_weights": self.calculate_class_weights,
             "normalize": self.normalize,
         }
 
@@ -126,50 +143,72 @@ class SkLearnSvmClassifier (ClassifyDescriptorSupervised):
 
     def _train(
         self,
-        class_examples: Mapping[Any, Iterable[DescriptorElement]]
+        class_examples: Mapping[Hashable, Iterable[DescriptorElement]]
     ) -> None:
         train_labels = []
         train_vectors = []
+        train_group_sizes: Dict = {}  # number of examples per class
         # Making SVM label assignment deterministic to lexicographical order
         # of the type repr.
         # -- Can't specifically guarantee that dict key types will all support
-        #    less-than operator., however we can always get some kind of repr
+        #    less-than operator, however we can always get some kind of repr
         #    which is a string which does support less-than. In the common case
         #    keys will be strings and ints, but this "should" handle more
         #    exotic cases, at least for the purpose of ordering keys reasonably
         #    deterministically.
         for i, l in enumerate(sorted(class_examples, key=lambda e: str(e))):
-            x = np.array(DescriptorElement.get_many_vectors(class_examples[l]))
+            # requires a sequence, so making the iterable ``g`` a tuple
+            g = class_examples[l]
+            if not isinstance(g, collections.abc.Sequence):
+                LOG.debug('   (expanding iterable into sequence)')
+                g = tuple(g)
+
+            train_group_sizes[l] = float(len(g))
+            x = np.array(DescriptorElement.get_many_vectors(g))
             x = self._norm_vector(x)
 
             train_labels.extend([l] * x.shape[0])
-            train_vectors.extend(x.tolist())
-            del x
+            train_vectors.extend(x)
+            del g, x
 
         assert len(train_labels) == len(train_vectors), \
             "Count mismatch between parallel labels and descriptor vectors" \
             "(%d != %d)" \
             % (len(train_labels), len(train_vectors))
 
+        # Calculate class weights
+        weights = None
+        if self.calculate_class_weights:
+            weights = {}
+            # (john.moeller): The weighting should probably be the geometric
+            # mean of the number of examples over the classes divided by the
+            # number of examples for the current class.
+            gmean = scipy.stats.gmean(list(train_group_sizes.values()))
+
+            for i, g in enumerate(train_group_sizes):
+                w = gmean / train_group_sizes[g]
+                weights[g] = w
+
         self.svm_model = svm.SVC(C=self.C,
                                  kernel=self.kernel,
-                                 probability=self.probability)
+                                 probability=self.probability,
+                                 class_weight=weights)
 
         LOG.debug("Training SVM model")
-        self.svm_model.fit(train_vectors, train_labels)  # type: ignore
+        self.svm_model.fit(train_vectors, train_labels)
 
         if self.svm_model_elem and self.svm_model_elem.writable():
             LOG.debug("Saving model to element (%s)", self.svm_model_elem)
             self.svm_model_elem.set_bytes(pickle.dumps(self.svm_model))
 
     def get_labels(self) -> Sequence[Hashable]:
-        if not self.has_model():
+        if self.svm_model is not None:
+            return list(self.svm_model.classes_)
+        else:
             raise RuntimeError("No model loaded")
 
-        return list(self.svm_model.classes_)  # type: ignore
-
     def _classify_arrays(self, array_iter: Union[np.ndarray, Iterable[np.ndarray]]) -> Iterator[Dict[Hashable, float]]:
-        if not self.has_model():
+        if self.svm_model is None:
             raise RuntimeError("No SVM model present for classification")
 
         # Dump descriptors into a matrix for normalization and use in
@@ -179,14 +218,14 @@ class SkLearnSvmClassifier (ClassifyDescriptorSupervised):
 
         svm_model_labels = self.get_labels()
 
-        if self.svm_model.probability:  # type: ignore
-            proba_mat = self.svm_model.predict_proba(vec_mat)  # type: ignore
+        if self.svm_model.probability:
+            proba_mat = self.svm_model.predict_proba(vec_mat)
             for proba in proba_mat:
                 yield dict(zip(svm_model_labels, proba))
         else:
             c_base = {label: 0.0 for label in svm_model_labels}
 
-            proba_mat = self.svm_model.predict(vec_mat)  # type: ignore
+            proba_mat = self.svm_model.predict(vec_mat)
             for p in proba_mat:
                 c = dict(c_base)
                 c[p] = 1.0
