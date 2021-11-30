@@ -62,7 +62,6 @@ pytest-cov = "^2.11.1"
 ipython = "^7.16"
 # because 0.18 does not work with ipy 7.16.1 in py3.6
 jedi = "^0.17"
-joblib = "^1.1"
 
 [tool.poetry.plugins."smqtk_plugins"]
 # ClassificationElement
