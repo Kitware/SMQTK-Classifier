@@ -73,6 +73,7 @@ jedi = "^0.17"
 # Supervised
 "smqtk_classifier.impls.classify_descriptor_supervised.libsvm" = "smqtk_classifier.impls.classify_descriptor_supervised.libsvm"
 "smqtk_classifier.impls.classify_descriptor_supervised.sklearn_logistic_regression" = "smqtk_classifier.impls.classify_descriptor_supervised.sklearn_logistic_regression"
+"smqtk_classifier.impls.classify_descriptor_supervised.sklearn_svm" = "smqtk_classifier.impls.classify_descriptor_supervised.sklearn_svm"
 
 ###############################################################################
 [tool.pytest.ini_options]
