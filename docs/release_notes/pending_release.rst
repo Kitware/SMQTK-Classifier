@@ -4,7 +4,18 @@ Pending Release Notes
 Updates / New Features
 ----------------------
 
-* Add scikit-learn SVM classifier
+Algorithms
+
+* Add scikit-learn SVM classifier.
+
+CI
+
+* Add workflow to inherit the smqtk-core publish workflow.
+
+Miscellaneous
+
+* Add a wrapper script to pull the versioning/changelog update helper from
+  smqtk-core to use here without duplication.
 
 Fixes
 -----
