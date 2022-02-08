@@ -59,9 +59,7 @@ coverage = "^5.5"
 pytest = "^6.2.2"
 pytest-cov = "^2.11.1"
 # Development
-ipython = "^7.16"
-# because 0.18 does not work with ipy 7.16.1 in py3.6
-jedi = "^0.17"
+ipython = "^7.16.3"
 
 [tool.poetry.plugins."smqtk_plugins"]
 # ClassificationElement
