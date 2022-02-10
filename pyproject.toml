@@ -82,7 +82,7 @@ addopts = [
     "--cov=./smqtk_classifier",       # Cover our package specifically
     "--cov=./tests",                  # Also cover our tests for dead spots
     "--cov-report=term",              # Coverage report to terminal
-    "--cov-report=xml:coverage.xml"   # for external tool reporting
+    "--cov-report=xml:coverage.xml"   # For external tool reporting
 ]
 testpaths = [
     "tests",
