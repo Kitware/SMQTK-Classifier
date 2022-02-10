@@ -87,6 +87,7 @@ jobs:
         # Extras for included, optional plugin support (space-separated lists)
         opt-extra: [
             "",  # no extras
+            "libsvm",
             "sklearn",
         ]
       # We want all python versions tested even if one of them happens to fail

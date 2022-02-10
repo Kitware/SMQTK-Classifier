@@ -15,6 +15,11 @@ CI
 * Updated CI unittests workflow to include codecov reporting and to run
   nightly.
 
+Dependencies
+
+* Added `libsvm-official` 3.15.0 as an extras dependency to provide the backing
+  for the existing libsvm-based plugin.
+
 Miscellaneous
 
 * Added a wrapper script to pull the versioning/changelog update helper from
