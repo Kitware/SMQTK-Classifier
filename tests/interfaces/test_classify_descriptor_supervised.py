@@ -12,23 +12,17 @@ from smqtk_classifier.exceptions import ExistingModelError
 
 class DummySupervisedClassifier (ClassifyDescriptorSupervised):
 
-    EXPECTED_LABELS = ['constant']
     EXPECTED_HAS_MODEL = False
 
     @classmethod
     def is_usable(cls) -> bool:
         return True
 
-    def get_config(self) -> Dict[str, Any]:
-        return {}
+    def get_config(self) -> Dict[str, Any]: ...
 
-    def get_labels(self) -> Sequence[Hashable]:
-        return self.EXPECTED_LABELS
+    def get_labels(self) -> Sequence[Hashable]: ...
 
-    def _classify_arrays(self, array_iter: ARRAY_ITER_T) -> Iterator[CLASSIFICATION_DICT_T]:
-        # Some deterministic dummy impl
-        for i, v in enumerate(array_iter):
-            yield {'test': i}
+    def _classify_arrays(self, array_iter: ARRAY_ITER_T) -> Iterator[CLASSIFICATION_DICT_T]: ...
 
     def has_model(self) -> bool:
         return self.EXPECTED_HAS_MODEL
@@ -36,10 +30,7 @@ class DummySupervisedClassifier (ClassifyDescriptorSupervised):
     def _train(
         self,
         class_examples: Mapping[Hashable, Iterable[DescriptorElement]]
-    ) -> None:
-        # Expecting this to be mocked in testing, but have to override to
-        # satisfy abstract baseclass fulfillment.
-        raise NotImplementedError()
+    ) -> None: ...
 
 
 class TestSupervisedClassifierAbstractClass (unittest.TestCase):

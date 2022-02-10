@@ -3,7 +3,7 @@ coverage:
     project:
       default: false
       tests:
-        target: 98%
+        target: 100%
         paths:
           - "tests/"
       package:

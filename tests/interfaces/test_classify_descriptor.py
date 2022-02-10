@@ -13,8 +13,6 @@ from smqtk_classifier.interfaces.classify_descriptor import ARRAY_ITER_T
 
 class DummyClassifier (ClassifyDescriptor):
 
-    EXPECTED_LABELS = ['constant']
-
     def __init__(self) -> None:
         super().__init__()
         # Mock "method" for testing functionality is called post-final-yield.
@@ -27,8 +25,7 @@ class DummyClassifier (ClassifyDescriptor):
     def get_config(self) -> Dict[str, Any]:
         return {}
 
-    def get_labels(self) -> Sequence[Hashable]:
-        return self.EXPECTED_LABELS
+    def get_labels(self) -> Sequence[Hashable]: ...
 
     def _classify_arrays(self, array_iter: ARRAY_ITER_T) -> Iterator[CLASSIFICATION_DICT_T]:
         """
@@ -55,8 +52,8 @@ class DummyClassifier (ClassifyDescriptor):
             yield {'test': i}
         # Yield some extra stuff
         yield {'test': i+1}
-        yield {'test': i+2}
-        self.post_iterator_check()
+        yield {'test': i+2}  # pragma: no cover
+        self.post_iterator_check()  # pragma: no cover
 
 
 class TestClassifierAbstractClass (unittest.TestCase):
