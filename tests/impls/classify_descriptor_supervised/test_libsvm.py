@@ -23,7 +23,7 @@ class TestLibSvmClassifier (unittest.TestCase):
     def test_impl_findable(self) -> None:
         self.assertIn(LibSvmClassifier, ClassifyDescriptor.get_impls())
 
-    @mock.patch('smqtk_classifier.impls.supervised.libsvm.LibSvmClassifier._reload_model')
+    @mock.patch('smqtk_classifier.impls.classify_descriptor_supervised.libsvm.LibSvmClassifier._reload_model')
     def test_configuration(self, m_inst_load_model: mock.Mock) -> None:
         """ Test configuration handling for this implementation.
 
@@ -256,9 +256,9 @@ class TestLibSvmClassifier (unittest.TestCase):
         p.close()
         p.join()
 
-    @mock.patch("smqtk.algorithms.classifier.libsvm.svm.libsvm."
+    @mock.patch("smqtk_classifier.impls.classify_descriptor_supervised.libsvm.svm.libsvm."
                 "svm_predict_probability")
-    @mock.patch("smqtk.algorithms.classifier.libsvm.parallel_map")
+    @mock.patch("smqtk_classifier.impls.classify_descriptor_supervised.libsvm.parallel_map")
     def test_serial_classification(self, m_pmap: mock.Mock, m_svm_pred: mock.Mock) -> None:
         """ Test that when n_jobs==1 parallel_map is NOT used. """
         classifier = LibSvmClassifier(
@@ -278,9 +278,9 @@ class TestLibSvmClassifier (unittest.TestCase):
         _ = list(g)  # cycle through the generator
         m_pmap.assert_not_called()
 
-    @mock.patch("smqtk.algorithms.classifier.libsvm.svm.libsvm."
+    @mock.patch("smqtk_classifier.impls.classify_descriptor_supervised.libsvm.svm.libsvm."
                 "svm_predict_probability")
-    @mock.patch("smqtk.algorithms.classifier.libsvm.parallel_map",
+    @mock.patch("smqtk_classifier.impls.classify_descriptor_supervised.libsvm.parallel_map",
                 wraps=parallel_map)
     def test_parallel_classification(self, m_pmap: mock.Mock, m_svm_pred: mock.Mock) -> None:
         """ Test that when n_jobs>1 parallel_map IS used. """

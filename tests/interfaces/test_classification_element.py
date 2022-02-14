@@ -28,21 +28,17 @@ class DummyCEImpl (ClassificationElement):
         # pass state through to base-class for testing.
         super(DummyCEImpl, self).__setstate__(state)
 
-    def get_config(self) -> Dict[str, Any]:
-        raise NotImplementedError()
+    def get_config(self) -> Dict[str, Any]: ...
 
-    def get_classification(self) -> CLASSIFICATION_DICT_T:
-        raise NotImplementedError()
+    def get_classification(self) -> CLASSIFICATION_DICT_T: ...
 
     def set_classification(
         self,
         m: Optional[CLASSIFICATION_MAP_T] = None,
         **kwds: float
-    ) -> CLASSIFICATION_DICT_T:
-        raise NotImplementedError()
+    ) -> CLASSIFICATION_DICT_T: ...
 
-    def has_classifications(self) -> bool:
-        raise NotImplementedError()
+    def has_classifications(self) -> bool: ...
 
 
 class TestClassificationElementAbstract (unittest.TestCase):
