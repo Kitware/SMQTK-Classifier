@@ -20,6 +20,9 @@ Dependencies
 * Added `libsvm-official` 3.15.0 as an extras dependency to provide the backing
   for the existing libsvm-based plugin.
 
+* Update minimum minimum python to 3.9 to reflect currently and soon-to-be
+  deprecated versions of python.
+
 Miscellaneous
 
 * Added a wrapper script to pull the versioning/changelog update helper from
