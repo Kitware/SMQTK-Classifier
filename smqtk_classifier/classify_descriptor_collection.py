@@ -38,7 +38,11 @@ class ClassifyDescriptorCollection (Configurable):
 
     EXAMPLE_KEY = '__example_label__'
 
-    def __init__(self, classifiers: Mapping[str, ClassifyDescriptor] = None, **labeled_classifiers: ClassifyDescriptor):
+    def __init__(
+            self,
+            classifiers: Mapping[str, ClassifyDescriptor] | None = None,
+            **labeled_classifiers: ClassifyDescriptor
+    ):
         self._label_to_classifier_lock = threading.RLock()
         self._label_to_classifier = {}
 
@@ -255,7 +259,7 @@ class ClassifyDescriptorCollection (Configurable):
     def classify_arrays(
         self,
         array_seq: Sequence[np.ndarray],
-        labels: Sequence[str] = None
+        labels: Sequence[str] | None = None
     ) -> Dict[str, List[Dict[Hashable, float]]]:
         """
         Apply all stored classifiers to the given iterable or matrix of numpy

@@ -13,7 +13,7 @@ from smqtk_classifier.interfaces.classification_element import (
 from smqtk_classifier.exceptions import NoClassificationError
 
 
-class DummyCEImpl (ClassificationElement):
+class DummyCEImpl (ClassificationElement):  # pragma: no cover
 
     @classmethod
     def is_usable(cls) -> bool:
@@ -28,17 +28,21 @@ class DummyCEImpl (ClassificationElement):
         # pass state through to base-class for testing.
         super(DummyCEImpl, self).__setstate__(state)
 
-    def get_config(self) -> Dict[str, Any]: ...
+    def get_config(self) -> Dict[str, Any]:
+        return {}
 
-    def get_classification(self) -> CLASSIFICATION_DICT_T: ...
+    def get_classification(self) -> CLASSIFICATION_DICT_T:
+        return {}
 
     def set_classification(
         self,
         m: Optional[CLASSIFICATION_MAP_T] = None,
         **kwds: float
-    ) -> CLASSIFICATION_DICT_T: ...
+    ) -> CLASSIFICATION_DICT_T:
+        return {}
 
-    def has_classifications(self) -> bool: ...
+    def has_classifications(self) -> bool:
+        return False
 
 
 class TestClassificationElementAbstract (unittest.TestCase):

@@ -5,7 +5,7 @@ import logging
 import os
 import pickle
 import tempfile
-from typing import Any, Dict, Hashable, Iterable, Iterator, Mapping, Optional, Sequence, Union
+from typing import Any, Dict, Hashable, Iterable, Iterator, Literal, Mapping, Optional, Sequence, Union
 import warnings
 
 import numpy
@@ -94,7 +94,7 @@ class LibSvmClassifier (ClassifyDescriptorSupervised):
             '-c': 2,  # SVM parameter C
             # '-g': 0.0078125,  # initial gamma (1 / 128)
         },
-        normalize: Optional[Union[int, float, str]] = None,
+        normalize: Union[float, Literal['fro', 'nuc'], None] = None,
         n_jobs: Optional[int] = 4,
     ):
         super(LibSvmClassifier, self).__init__()

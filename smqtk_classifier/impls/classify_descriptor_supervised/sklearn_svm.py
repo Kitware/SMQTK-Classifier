@@ -1,7 +1,7 @@
 import collections
 import logging
 import pickle
-from typing import Any, Dict, Hashable, Iterable, Iterator, Mapping, Optional, Sequence, Union
+from typing import Any, Dict, Hashable, Iterable, Iterator, Literal, Mapping, Optional, Sequence, Union
 import warnings
 
 import numpy as np
@@ -64,7 +64,7 @@ class SkLearnSvmClassifier (ClassifyDescriptorSupervised):
         kernel: str = 'linear',  # Kernel type
         probability: bool = True,  # Enable probabilty estimates
         calculate_class_weights: bool = True,  # Enable calculation of class weights
-        normalize: Optional[Union[int, float, str]] = None,
+        normalize: Union[float, Literal['fro', 'nuc'], None] = None,
     ):
         super(SkLearnSvmClassifier, self).__init__()
 
@@ -145,8 +145,8 @@ class SkLearnSvmClassifier (ClassifyDescriptorSupervised):
         self,
         class_examples: Mapping[Hashable, Iterable[DescriptorElement]]
     ) -> None:
-        train_labels = []
-        train_vectors = []
+        train_labels: list = []
+        train_vectors: list = []
         train_group_sizes: Dict = {}  # number of examples per class
         # Making SVM label assignment deterministic to lexicographical order
         # of the type repr.

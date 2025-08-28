@@ -10,7 +10,7 @@ from smqtk_classifier.interfaces.classify_descriptor import ARRAY_ITER_T
 from smqtk_classifier.exceptions import ExistingModelError
 
 
-class DummySupervisedClassifier (ClassifyDescriptorSupervised):
+class DummySupervisedClassifier (ClassifyDescriptorSupervised):  # pragma: no cover
 
     EXPECTED_HAS_MODEL = False
 
@@ -18,11 +18,14 @@ class DummySupervisedClassifier (ClassifyDescriptorSupervised):
     def is_usable(cls) -> bool:
         return True
 
-    def get_config(self) -> Dict[str, Any]: ...
+    def get_config(self) -> Dict[str, Any]:
+        return {}
 
-    def get_labels(self) -> Sequence[Hashable]: ...
+    def get_labels(self) -> Sequence[Hashable]:
+        return []
 
-    def _classify_arrays(self, array_iter: ARRAY_ITER_T) -> Iterator[CLASSIFICATION_DICT_T]: ...
+    def _classify_arrays(self, array_iter: ARRAY_ITER_T) -> Iterator[CLASSIFICATION_DICT_T]:
+        return iter([])
 
     def has_model(self) -> bool:
         return self.EXPECTED_HAS_MODEL
@@ -30,7 +33,8 @@ class DummySupervisedClassifier (ClassifyDescriptorSupervised):
     def _train(
         self,
         class_examples: Mapping[Hashable, Iterable[DescriptorElement]]
-    ) -> None: ...
+    ) -> None:
+        return
 
 
 class TestSupervisedClassifierAbstractClass (unittest.TestCase):
