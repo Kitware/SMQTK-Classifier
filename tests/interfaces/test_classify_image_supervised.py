@@ -9,7 +9,7 @@ from smqtk_classifier.interfaces.classify_image import IMAGE_ITER_T
 from smqtk_classifier.exceptions import ExistingModelError
 
 
-class DummySupervisedClassifier (ClassifyImageSupervised):
+class DummySupervisedClassifier (ClassifyImageSupervised):  # pragma: no cover
 
     EXPECTED_LABELS = ['constant']
     EXPECTED_HAS_MODEL = False
@@ -18,12 +18,10 @@ class DummySupervisedClassifier (ClassifyImageSupervised):
         return {}
 
     def get_labels(self) -> Sequence[Hashable]:
-        return self.EXPECTED_LABELS
+        return []
 
     def classify_images(self, img_iter: IMAGE_ITER_T) -> Iterator[CLASSIFICATION_DICT_T]:
-        # Some deterministic dummy impl
-        for i, v in enumerate(img_iter):
-            yield {'test': i}
+        return iter([])
 
     def has_model(self) -> bool:
         return self.EXPECTED_HAS_MODEL
@@ -32,9 +30,7 @@ class DummySupervisedClassifier (ClassifyImageSupervised):
         self,
         class_examples: Mapping[Hashable, IMAGE_ITER_T]
     ) -> None:
-        # Expecting this to be mocked in testing, but have to override to
-        # satisfy abstract baseclass fulfillment.
-        raise NotImplementedError()
+        return
 
 
 class TestSupervisedClassifierAbstractClass (unittest.TestCase):

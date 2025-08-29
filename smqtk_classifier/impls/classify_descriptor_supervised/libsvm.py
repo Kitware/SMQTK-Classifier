@@ -5,7 +5,7 @@ import logging
 import os
 import pickle
 import tempfile
-from typing import Any, Dict, Hashable, Iterable, Iterator, Mapping, Optional, Sequence, Union
+from typing import Any, Dict, Hashable, Iterable, Iterator, Literal, Mapping, Optional, Sequence, Union
 import warnings
 
 import numpy
@@ -39,11 +39,15 @@ try:
     # noinspection PyPackageRequirements
     import svmutil  # type: ignore
 except ImportError:
-    warnings.warn(
-        "svm/svmutil not importable: LibSvmClassifier will not be usable."
-    )
-    svm = None
-    svmutil = None
+    # What about that other libsvm-official?
+    try:
+        from libsvm import svm, svmutil  # type: ignore
+    except ImportError:
+        warnings.warn(
+            "svm/svmutil not importable: LibSvmClassifier will not be usable."
+        )
+        svm = None
+        svmutil = None
 
 
 class LibSvmClassifier (ClassifyDescriptorSupervised):
@@ -90,7 +94,7 @@ class LibSvmClassifier (ClassifyDescriptorSupervised):
             '-c': 2,  # SVM parameter C
             # '-g': 0.0078125,  # initial gamma (1 / 128)
         },
-        normalize: Optional[Union[int, float, str]] = None,
+        normalize: Union[float, Literal['fro', 'nuc'], None] = None,
         n_jobs: Optional[int] = 4,
     ):
         super(LibSvmClassifier, self).__init__()
@@ -150,8 +154,7 @@ class LibSvmClassifier (ClassifyDescriptorSupervised):
                 state['__LOCAL__'] = True
                 state['__LOCAL_LABELS__'] = self.svm_label_map
 
-                fp_bytes = fp.encode('utf8')
-                svmutil.svm_save_model(fp_bytes, self.svm_model)
+                svmutil.svm_save_model(fp, self.svm_model)
                 with open(fp, 'rb') as model_f:
                     state['__LOCAL_MODEL__'] = model_f.read()
 
@@ -185,8 +188,7 @@ class LibSvmClassifier (ClassifyDescriptorSupervised):
                 with open(fp, 'wb') as model_f:
                     model_f.write(state['__LOCAL_MODEL__'])
 
-                fp_bytes = fp.encode('utf8')
-                self.svm_model = svmutil.svm_load_model(fp_bytes)
+                self.svm_model = svmutil.svm_load_model(fp)
 
             finally:
                 os.remove(fp)

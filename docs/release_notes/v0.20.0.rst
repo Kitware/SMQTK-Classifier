@@ -1,0 +1,39 @@
+v0.20.0
+=======
+
+This release updates Python support to require **3.10+** and extends testing through **3.13**.
+It also strengthens **CI workflows and Codecov integration**, particularly for forked pull
+requests, and introduces new algorithm support.  
+
+Updates / New Features
+----------------------
+
+Python Support
+
+* Minimum version bumped to 3.10, with testing expanded up to 3.13.  
+
+Algorithms
+
+* Added a new **scikit-learn SVM classifier**.  
+
+CI & Coverage
+
+* Inherits publish workflow from ``smqtk-core``.
+* CI unittests workflow updated to include Codecov, but skips submission for scheduled runs.
+* Coverage reporting now works for PRs from forks (unprotected branches).
+* CI runs extended to branches matching ``release*``.
+
+Dependencies
+
+* Added ``libsvm-official 3.15.0`` as an extras dependency for libsvm-based plugins.  
+* Updated and locked ``ipython`` to address a security vulnerability.  
+* Removed outdated ``jedi`` requirement.
+
+Miscellaneous
+
+* Added wrapper script for changelog/versioning helper from ``smqtk-core`` to avoid duplication. 
+
+Fixes
+-----
+
+* Codecov integration to support coverage reporting on pull requests from forks (unprotected branches).

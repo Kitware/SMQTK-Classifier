@@ -268,8 +268,8 @@ class TestClassifyDescriptorCollection (unittest.TestCase):
             'subjectA': DummyClassifier(),
             'subjectB': DummyClassifier(),
         })
-        dmat = np.asarray([[0, 1, 2, 3, 4],
-                           [5, 6, 7, 8, 9]])
+        dmat = list(np.asarray([[0, 1, 2, 3, 4],
+                                [5, 6, 7, 8, 9]]))
         result = ccol.classify_arrays(dmat)
         # Should contain one entry for each configured classifier.
         assert len(result) == 2
@@ -291,7 +291,7 @@ class TestClassifyDescriptorCollection (unittest.TestCase):
         classifierB = ccol._label_to_classifier['subjectB']
         classifierB.classify_one_element = mock.Mock()  # type: ignore
 
-        d_v = [0, 1, 2, 3, 4]
+        d_v = np.asarray([0, 1, 2, 3, 4])
         d = DescriptorMemoryElement('0')
         d.set_vector(d_v)
         result = ccol.classify(d, labels=['subjectA'])
@@ -321,7 +321,7 @@ class TestClassifyDescriptorCollection (unittest.TestCase):
         classifierB = ccol._label_to_classifier['subjectB']
         classifierB.classify_one_element = mock.Mock()  # type: ignore
 
-        d_v = [0, 1, 2, 3, 4]
+        d_v = np.asarray([0, 1, 2, 3, 4])
         d = DescriptorMemoryElement('0')
         d.set_vector(d_v)
         result = ccol.classify(d, labels=[])
@@ -339,7 +339,7 @@ class TestClassifyDescriptorCollection (unittest.TestCase):
             'subjectB': DummyClassifier(),
         })
 
-        d_v = [0, 1, 2, 3, 4]
+        d_v = np.asarray([0, 1, 2, 3, 4])
         d = DescriptorMemoryElement('0')
         d.set_vector(d_v)
 

@@ -8,60 +8,46 @@ import unittest.mock as mock
 from smqtk_core.configuration import configuration_test_helper
 from smqtk_descriptors import DescriptorElement, DescriptorElementFactory
 from smqtk_descriptors.impls.descriptor_element.memory import DescriptorMemoryElement
-from smqtk_descriptors.utils import parallel_map
 import numpy
 import pytest
 
 from smqtk_classifier import ClassifyDescriptor
-from smqtk_classifier.impls.classify_descriptor_supervised.libsvm import LibSvmClassifier
+from smqtk_classifier.impls.classify_descriptor_supervised.sklearn_svm import SkLearnSvmClassifier
 
 
-@pytest.mark.skipif(not LibSvmClassifier.is_usable(),
-                    reason="LibSvmClassifier does not report as usable.")
-class TestLibSvmClassifier (unittest.TestCase):
+@pytest.mark.skipif(not SkLearnSvmClassifier.is_usable(),
+                    reason="SkLearnSvmClassifier does not report as usable.")
+class TestSkLearnSvmClassifier (unittest.TestCase):
 
     def test_impl_findable(self) -> None:
-        self.assertIn(LibSvmClassifier, ClassifyDescriptor.get_impls())
+        self.assertIn(SkLearnSvmClassifier, ClassifyDescriptor.get_impls())
 
-    @mock.patch('smqtk_classifier.impls.classify_descriptor_supervised.libsvm.LibSvmClassifier._reload_model')
+    @mock.patch('smqtk_classifier.impls.classify_descriptor_supervised.sklearn_svm.SkLearnSvmClassifier._reload_model')
     def test_configuration(self, m_inst_load_model: mock.Mock) -> None:
-        """ Test configuration handling for this implementation.
-
-        Mocking out model loading when given URIs if they happen to point to
-        something.
-        """
+        """ Test configuration handling for this implementation. """
         ex_model_uri = 'some model uri'
-        ex_labelmap_uri = 'some label map uri'
-        ex_trainparams = {'-s': 8,  '-t': -10,  '-b': 42,  '-c': 7.2}
+        ex_c = 4.0
+        ex_kernel = 'linear'
+        ex_probability = True
         ex_normalize = 2
-        ex_njobs = 7
 
-        c = LibSvmClassifier(ex_model_uri, ex_labelmap_uri,
-                             train_params=ex_trainparams,
-                             normalize=ex_normalize,
-                             n_jobs=7)
-        for inst in configuration_test_helper(c):  # type: LibSvmClassifier
+        c = SkLearnSvmClassifier(ex_model_uri,
+                                 C=ex_c,
+                                 kernel=ex_kernel,
+                                 probability=ex_probability,
+                                 normalize=ex_normalize)
+        for inst in configuration_test_helper(c):  # type: SkLearnSvmClassifier
             assert inst.svm_model_uri == ex_model_uri
-            assert inst.svm_label_map_uri == ex_labelmap_uri
-            assert inst.train_params == ex_trainparams
+            assert inst.C == ex_c
+            assert inst.kernel == ex_kernel
+            assert inst.probability == ex_probability
             assert inst.normalize == ex_normalize
-            assert inst.n_jobs == ex_njobs
 
-    def test_no_save_model_pickle(self) -> None:
-        # Test model preservation across pickling even without model cache
-        # file paths set.
-        classifier = LibSvmClassifier(
-            train_params={
-                '-t': 0,  # linear kernel
-                '-b': 1,  # enable probability estimates
-                '-c': 2,  # SVM-C parameter C
-                '-q': '',  # quite mode
-            },
+    def test_save_model(self) -> None:
+        classifier = SkLearnSvmClassifier(
             normalize=None,  # DO NOT normalize descriptors
         )
         self.assertTrue(classifier.svm_model is None)
-        # Empty model should not trigger __LOCAL__ content in pickle
-        self.assertNotIn('__LOCAL__', classifier.__getstate__())
         _ = pickle.loads(pickle.dumps(classifier))
 
         # train arbitrary model (same as ``test_simple_classification``)
@@ -96,19 +82,8 @@ class TestLibSvmClassifier (unittest.TestCase):
         t_v = numpy.random.rand(DIM)
         c_expected = list(classifier._classify_arrays([t_v]))[0]
 
-        # Should see __LOCAL__ content in pickle state now
-        p_state = classifier.__getstate__()
-        self.assertIn('__LOCAL__', p_state)
-        self.assertIn('__LOCAL_LABELS__', p_state)
-        self.assertIn('__LOCAL_MODEL__', p_state)
-        self.assertTrue(len(p_state['__LOCAL_LABELS__']) > 0)
-        self.assertTrue(len(p_state['__LOCAL_MODEL__']) > 0)
-
         # Restored classifier should classify the same test descriptor the
         # same.
-        # - If this fails after a new parameter was added its probably because
-        #   the parameter was not restored during the __setstate__.
-        #: :type: LibSvmClassifier
         classifier2 = pickle.loads(pickle.dumps(classifier))
         c_post_pickle = list(classifier2._classify_arrays([t_v]))[0]
         # There may be floating point error, so extract actual confidence
@@ -122,9 +97,9 @@ class TestLibSvmClassifier (unittest.TestCase):
 
     def test_simple_classification(self) -> None:
         """
-        simple LibSvmClassifier test - 2-class
+        simple SkLearnSvmClassifier test - 2-class
 
-        Test libSVM classification functionality using random constructed
+        Test SkLearn classification functionality using random constructed
         data, training the y=0.5 split
         """
         DIM = 2
@@ -149,13 +124,7 @@ class TestLibSvmClassifier (unittest.TestCase):
         d_neg = p.map(make_element, enumerate(x_neg, start=N//2))
 
         # Create/Train test classifier
-        classifier = LibSvmClassifier(
-            train_params={
-                '-t': 0,  # linear kernel
-                '-b': 1,  # enable probability estimates
-                '-c': 2,  # SVM-C parameter C
-                '-q': '',  # quite mode
-            },
+        classifier = SkLearnSvmClassifier(
             normalize=None,  # DO NOT normalize descriptors
         )
         classifier.train({POS_LABEL: d_pos, NEG_LABEL: d_neg})
@@ -185,9 +154,9 @@ class TestLibSvmClassifier (unittest.TestCase):
 
     def test_simple_multiclass_classification(self) -> None:
         """
-        simple LibSvmClassifier test - 3-class
+        simple SkLearnSvmClassifier test - 3-class
 
-        Test libSVM classification functionality using random constructed
+        Test SkLearnSVM classification functionality using random constructed
         data, training the y=0.33 and y=.66 split
         """
         DIM = 2
@@ -219,13 +188,7 @@ class TestLibSvmClassifier (unittest.TestCase):
         di += len(d_p3)
 
         # Create/Train test classifier
-        classifier = LibSvmClassifier(
-            train_params={
-                '-t': 0,  # linear kernel
-                '-b': 1,  # enable probability estimates
-                '-c': 2,  # SVM-C parameter C
-                '-q': ''  # quite mode
-            },
+        classifier = SkLearnSvmClassifier(
             normalize=None,  # DO NOT normalize descriptors
         )
         classifier.train({P1_LABEL: d_p1, P2_LABEL: d_p2, P3_LABEL: d_p3})
@@ -255,49 +218,3 @@ class TestLibSvmClassifier (unittest.TestCase):
         # Closing resources
         p.close()
         p.join()
-
-    @mock.patch("smqtk_classifier.impls.classify_descriptor_supervised.libsvm.svm.libsvm."
-                "svm_predict_probability")
-    @mock.patch("smqtk_classifier.impls.classify_descriptor_supervised.libsvm.parallel_map")
-    def test_serial_classification(self, m_pmap: mock.Mock, m_svm_pred: mock.Mock) -> None:
-        """ Test that when n_jobs==1 parallel_map is NOT used. """
-        classifier = LibSvmClassifier(
-            n_jobs=1
-        )
-        # Mock some stuff to pretend we have been trained.
-        classifier.has_model = mock.Mock(return_value=True)  # type: ignore
-        classifier.svm_label_map = {1: "meh"}
-        classifier.svm_model = mock.Mock()  # type: ignore
-        classifier.svm_model.is_probability_model.return_value = True
-        # Values for a default C_SVC
-        classifier.svm_model.get_svm_type.return_value = 0
-        classifier.svm_model.get_nr_class.return_value = 2
-        classifier.svm_model.get_labels.return_value = [1]
-
-        g = classifier._classify_arrays(numpy.array([[0], [1], [2]]))
-        _ = list(g)  # cycle through the generator
-        m_pmap.assert_not_called()
-
-    @mock.patch("smqtk_classifier.impls.classify_descriptor_supervised.libsvm.svm.libsvm."
-                "svm_predict_probability")
-    @mock.patch("smqtk_classifier.impls.classify_descriptor_supervised.libsvm.parallel_map",
-                wraps=parallel_map)
-    def test_parallel_classification(self, m_pmap: mock.Mock, m_svm_pred: mock.Mock) -> None:
-        """ Test that when n_jobs>1 parallel_map IS used. """
-        classifier = LibSvmClassifier(
-            n_jobs=4
-        )
-        # Mock some stuff to pretend we have been trained.
-        classifier.has_model = mock.Mock(return_value=True)  # type: ignore
-        classifier.svm_label_map = {1: "meh"}
-        classifier.svm_model = mock.Mock()  # type: ignore
-        classifier.svm_model.is_probability_model.return_value = True
-        # Values for a default C_SVC
-        classifier.svm_model.get_svm_type.return_value = 0
-        classifier.svm_model.get_nr_class.return_value = 2
-        classifier.svm_model.get_labels.return_value = [1]
-
-        g = classifier._classify_arrays(numpy.array([[0], [1], [2]]))
-        _ = list(g)  # cycle through the generator
-        m_pmap.assert_called()
-        assert m_pmap.call_count == 1

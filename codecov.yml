@@ -1,0 +1,27 @@
+codecov:
+  strict_yaml_branch: master
+
+coverage:
+  status:
+    project:
+      default: false
+      tests:
+        target: 100%
+        paths:
+          - "tests/"
+        if_not_found: success
+      package:
+        target: 80%
+        paths:
+          - "smqtk_classifier/"
+    patch:
+      default: false
+      tests:
+        target: 100%
+        paths:
+          - "tests/"
+        if_not_found: success
+      package:
+        target: 80%
+        paths:
+          - "smqtk_classifier/"

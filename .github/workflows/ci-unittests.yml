@@ -11,6 +11,10 @@ on:
   pull_request:
     branches:
       - master
+      - release*
+  schedule:
+    # Nightly run unit tests to check for implicit dependency issues between pull requests.
+    - cron: '0 0 * * *'
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
@@ -25,15 +29,15 @@ defaults:
 jobs:
   lint:
     runs-on: ubuntu-latest
-    container: python:3.6
+    container: python:3.10
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
       # Cache local python environment artifacts for the current python version
       # and poetry lockfile hash.
-      - uses: actions/cache@v2
+      - uses: actions/cache@v4
         id: env-cache
         with:
           # Confirmed that the `.local` directory doesn't exist until the
@@ -42,7 +46,7 @@ jobs:
           path: |
             ~/.cache/pypoetry/virtualenvs/
             ~/.local
-          key: python-3.6-${{ hashFiles('poetry.lock') }}
+          key: python-3.10-${{ hashFiles('poetry.lock') }}
       - name: Setup Environment
         # See: https://docs.github.com/en/actions/reference/workflow-syntax-for-github-actions#example-using-a-public-action-in-a-subdirectory
         uses: Kitware/SMQTK-Core/.github/actions/python-poetry-setup@master
@@ -51,15 +55,15 @@ jobs:
 
   typecheck:
     runs-on: ubuntu-latest
-    container: python:3.6
+    container: python:3.10
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
       # Cache local python environment artifacts for the current python version
       # and poetry lockfile hash.
-      - uses: actions/cache@v2
+      - uses: actions/cache@v4
         id: env-cache
         with:
           # Confirmed that the `.local` directory doesn't exist until the
@@ -68,7 +72,7 @@ jobs:
           path: |
             ~/.cache/pypoetry/virtualenvs/
             ~/.local
-          key: python-3.6-${{ hashFiles('poetry.lock') }}
+          key: python-3.10-${{ hashFiles('poetry.lock') }}
       - name: Setup Environment
         # See: https://docs.github.com/en/actions/reference/workflow-syntax-for-github-actions#example-using-a-public-action-in-a-subdirectory
         uses: Kitware/SMQTK-Core/.github/actions/python-poetry-setup@master
@@ -79,10 +83,11 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [3.6, 3.7, 3.8, 3.9]
+        python-version: ["3.10", "3.11", "3.12", "3.13"]
         # Extras for included, optional plugin support (space-separated lists)
         opt-extra: [
             "",  # no extras
+            "libsvm",
             "sklearn",
         ]
       # We want all python versions tested even if one of them happens to fail
@@ -93,12 +98,12 @@ jobs:
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
       # Cache local python environment artifacts for the current python version
       # and poetry lockfile hash.
-      - uses: actions/cache@v2
+      - uses: actions/cache@v4
         id: env-cache
         with:
           # Confirmed that the `.local` directory doesn't exist until the
@@ -111,6 +116,7 @@ jobs:
       - name: Setup Environment
         # See: https://docs.github.com/en/actions/reference/workflow-syntax-for-github-actions#example-using-a-public-action-in-a-subdirectory
         uses: Kitware/SMQTK-Core/.github/actions/python-poetry-setup@master
+
       - name: Optionally install additional requirements
         env:
           OPT_EXTRA: ${{ matrix.opt-extra }}
@@ -119,5 +125,15 @@ jobs:
           then
             poetry install --extras "$OPT_EXTRA"
           fi
+
       - name: Run Unittests
-        run: poetry run pytest --cov=smqtk_classifier --cov-report=xml
+        run: poetry run pytest
+
+      - name: Codecov report submission
+        if: github.event_name != 'schedule'
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN || '' }}
+          fail_ci_if_error: true
+          files: coverage.xml
+          flags: unittests

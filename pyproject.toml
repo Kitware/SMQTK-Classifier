@@ -8,7 +8,7 @@ name = "smqtk_classifier"
 # REMEMBER: `distutils.version.*Version` types can be used to compare versions
 # from strings like this.
 # SMQTK prefers to use the strict numbering standard when possible.
-version = "0.19.0"
+version = "0.20.0"
 description = """\
     Algorithms, data structures and utilities around performing classification\
     of inputs."""
@@ -25,43 +25,47 @@ classifiers = [
         'Operating System :: MacOS :: MacOS X',
         'Operating System :: Unix',
         'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.6',
-        'Programming Language :: Python :: 3.7',
-        'Programming Language :: Python :: 3.8',
-        'Programming Language :: Python :: 3.9',
+        'Programming Language :: Python :: 3.10',
+        'Programming Language :: Python :: 3.11',
+        'Programming Language :: Python :: 3.12',
+        'Programming Language :: Python :: 3.13',
 ]
 
 [tool.poetry.dependencies]
-python = "^3.6"
-numpy = "^1.19.5"
-smqtk-core = ">=0.18.0"
-smqtk-dataprovider = ">=0.16.0"
-smqtk-descriptors = ">=0.18"
-scikit-learn = {version = "^0.24.1", optional = true}
+python = "^3.10"
+numpy = [
+    # Without the hinge, Poetry fails to resolve for py3.13. 2.1 is the first version with py3.13 support.
+    {version = ">=1.23.5,<2.0", python = "<3.13" },
+    {version = ">=2.1", python = ">=3.13" }
+]
+smqtk-core = ">=0.20.0"
+smqtk-dataprovider = ">=0.19.0"
+smqtk-descriptors = ">=0.20"
+libsvm-official = {version = ">=3.30,<3.31", optional = true}
+scikit-learn = {version = ">=1.6", optional = true}
 
 [tool.poetry.extras]
+libsvm = [ "libsvm-official" ]
 sklearn = [ "scikit-learn" ]
 
 [tool.poetry.dev-dependencies]
 # CI
-flake8 = "^3.9.0"
-flake8-mutable = "^1.2.0"
-mypy = "^0.812"
+flake8 = ">=6"
+flake8-mutable = ">=1.2"
+mypy = ">=0.991"
 # Docs
 # - Also see: `docs/readthedocs-reqs.txt` for use by RTD
-Sphinx = "^3.5.3"
-sphinx-rtd-theme = "^0.5.1"
-sphinx-argparse = "^0.2.5"
-sphinx-prompt = "^1.4.0"
-livereload = "^2.6.3"
+Sphinx = ">=5.3"
+sphinx-rtd-theme = ">=1.1.1"
+sphinx-argparse = ">=0.4"
+sphinx-prompt = ">=1.5"
+livereload = ">=2.6.3"
 # Testing
-coverage = "^5.5"
-pytest = "^6.2.2"
-pytest-cov = "^2.11.1"
+coverage = ">=6.5"
+pytest = ">=7.2"
+pytest-cov = ">=4"
 # Development
-ipython = "^7.16"
-# because 0.18 does not work with ipy 7.16.1 in py3.6
-jedi = "^0.17"
+ipython = ">=8.6.0"
 
 [tool.poetry.plugins."smqtk_plugins"]
 # ClassificationElement
@@ -73,6 +77,7 @@ jedi = "^0.17"
 # Supervised
 "smqtk_classifier.impls.classify_descriptor_supervised.libsvm" = "smqtk_classifier.impls.classify_descriptor_supervised.libsvm"
 "smqtk_classifier.impls.classify_descriptor_supervised.sklearn_logistic_regression" = "smqtk_classifier.impls.classify_descriptor_supervised.sklearn_logistic_regression"
+"smqtk_classifier.impls.classify_descriptor_supervised.sklearn_svm" = "smqtk_classifier.impls.classify_descriptor_supervised.sklearn_svm"
 
 ###############################################################################
 [tool.pytest.ini_options]
@@ -83,7 +88,7 @@ addopts = [
     "--cov=./smqtk_classifier",       # Cover our package specifically
     "--cov=./tests",                  # Also cover our tests for dead spots
     "--cov-report=term",              # Coverage report to terminal
-    "--cov-report=xml:coverage.xml"   # for external tool reporting
+    "--cov-report=xml:coverage.xml"   # For external tool reporting
 ]
 testpaths = [
     "tests",
