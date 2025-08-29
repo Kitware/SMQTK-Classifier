@@ -98,7 +98,7 @@ class ClassifyDescriptor (Plugfigurable):
             # objects then its shape *will* be consistent.
             # * Type-ignoring this line to utilize duck-type detection of
             #   array-type via catching attribute error.
-            if array_iter.ndim > 1 and array_iter.dtype != np.object:  # type: ignore
+            if array_iter.ndim > 1 and array_iter.dtype != object:  # type: ignore
                 return array_iter
         except AttributeError:
             # If we don't encounter numpy array-like syntax proceed with
