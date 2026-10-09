@@ -26,7 +26,7 @@ class TestSklearnLogisticRegressionClassifier (unittest.TestCase):
             penalty='l1', dual=True, tol=1e-6, C=2.0, fit_intercept=False,
             intercept_scaling=3, class_weight={0: 2.0, 1: 3.0},
             random_state=456, solver='liblinear', max_iter=99,
-            multi_class='multinomial', verbose=1, warm_start=True, n_jobs=2,
+            verbose=1, warm_start=True, n_jobs=2,
         )
         for inst_i in configuration_test_helper(inst):  # type: SkLearnLogisticRegression
             assert inst.penalty == inst_i.penalty == 'l1'
@@ -38,7 +38,6 @@ class TestSklearnLogisticRegressionClassifier (unittest.TestCase):
             assert inst.class_weight == inst_i.class_weight == {0: 2.0, 1: 3.0}
             assert inst.random_state == inst_i.random_state == 456
             assert inst.solver == inst_i.solver == 'liblinear'
-            assert inst.multi_class == inst_i.multi_class == 'multinomial'
             assert inst.verbose == inst_i.verbose == 1
             assert inst.warm_start is inst_i.warm_start is True
             assert inst.n_jobs == inst_i.n_jobs == 2

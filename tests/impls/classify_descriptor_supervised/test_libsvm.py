@@ -1,7 +1,7 @@
 import pickle
 import multiprocessing
 import multiprocessing.pool
-from typing import Tuple
+from typing import Dict, Hashable, List, Tuple
 import unittest
 import unittest.mock as mock
 
@@ -301,3 +301,30 @@ class TestLibSvmClassifier (unittest.TestCase):
         _ = list(g)  # cycle through the generator
         m_pmap.assert_called()
         assert m_pmap.call_count == 1
+
+
+@pytest.mark.skipif(not LibSvmClassifier.is_usable(),
+                    reason="LibSvmClassifier does not report as usable.")
+@pytest.mark.parametrize("probability", [0, 1])
+def test_parallel_prediction_matches_serial(probability: int) -> None:
+    """Both prediction modes preserve results and input order with workers."""
+    classifier = LibSvmClassifier(
+        train_params={'-t': 0, '-b': probability, '-c': 2, '-q': ''},
+        n_jobs=1,
+    )
+    examples: Dict[Hashable, List[DescriptorElement]] = {}
+    for label, sign in [('positive', 1), ('negative', -1)]:
+        descriptors: List[DescriptorElement] = []
+        for i in range(8):
+            descriptor = DescriptorMemoryElement((label, i))
+            descriptor.set_vector(numpy.array([sign * (i + 1), 1.]))
+            descriptors.append(descriptor)
+        examples[label] = descriptors
+    classifier.train(examples)
+    vectors = numpy.array([[3., 1.], [-3., 1.], [1., 1.], [-1., 1.]])
+    expected = list(classifier._classify_arrays(vectors))
+    classifier.n_jobs = 2
+    actual = list(classifier._classify_arrays(vectors))
+    assert actual == expected
+    assert expected[0]['positive'] > expected[0]['negative']
+    assert expected[1]['negative'] > expected[1]['positive']

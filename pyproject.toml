@@ -29,24 +29,34 @@ classifiers = [
         'Programming Language :: Python :: 3.11',
         'Programming Language :: Python :: 3.12',
         'Programming Language :: Python :: 3.13',
+        'Programming Language :: Python :: 3.14',
 ]
 
 [tool.poetry.dependencies]
 python = "^3.10"
 numpy = [
-    # Without the hinge, Poetry fails to resolve for py3.13. 2.1 is the first version with py3.13 support.
-    {version = ">=1.23.5,<2.0", python = "<3.13" },
-    {version = ">=2.1", python = ">=3.13" }
+    # Allow NumPy 1 or 2 on older Python versions; newer versions need compatible wheels.
+    {version = ">=1.23.5", python = "<3.13" },
+    {version = ">=2.1", python = ">=3.13,<3.14" },
+    {version = ">=2.3.2", python = ">=3.14" }
 ]
-smqtk-core = ">=0.20.0"
-smqtk-dataprovider = ">=0.19.0"
-smqtk-descriptors = ">=0.20"
+smqtk-core = ">=0.22.0"
+smqtk-dataprovider = ">=0.20.0"
+smqtk-descriptors = ">=0.21.0"
 libsvm-official = {version = ">=3.30,<3.31", optional = true}
-scikit-learn = {version = ">=1.6", optional = true}
+scikit-learn = [
+    {version = ">=1.6", python = "<3.14", optional = true},
+    {version = ">=1.7.2", python = ">=3.14", optional = true}
+]
+# Older SciPy releases have no Python 3.14 wheels for the optional classifiers.
+scipy = [
+    {version = ">=1.8", python = "<3.14", optional = true},
+    {version = ">=1.16.1", python = ">=3.14", optional = true}
+]
 
 [tool.poetry.extras]
-libsvm = [ "libsvm-official" ]
-sklearn = [ "scikit-learn" ]
+libsvm = [ "libsvm-official", "scipy" ]
+sklearn = [ "scikit-learn", "scipy" ]
 
 [tool.poetry.dev-dependencies]
 # CI
@@ -61,11 +71,11 @@ sphinx-argparse = ">=0.4"
 sphinx-prompt = ">=1.5"
 livereload = ">=2.6.3"
 # Testing
-coverage = ">=6.5"
-pytest = ">=7.2"
+coverage = ">=7.10.6"
+pytest = ">=9.0.3"
 pytest-cov = ">=4"
 # Development
-ipython = ">=8.6.0"
+ipython = ">=8.10.0"
 
 [tool.poetry.plugins."smqtk_plugins"]
 # ClassificationElement
