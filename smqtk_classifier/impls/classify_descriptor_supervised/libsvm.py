@@ -78,7 +78,7 @@ class LibSvmClassifier (ClassifyDescriptorSupervised):
         could be passed to the ``ord`` parameter in ``numpy.linalg.norm``
         for 1D arrays. This is ``None`` by default (no normalization).
     :param n_jobs:
-        Number of processes to use to parallelize prediction. If None or a
+        Number of threads to use to parallelize prediction. If None or a
         negative value, all cores are used.
     """
 
@@ -374,6 +374,9 @@ class LibSvmClassifier (ClassifyDescriptorSupervised):
         # TODO: Normalize input arrays in batch(es). TEST if current norm
         #       function can just take a matrix?
 
+        # Prediction only reads the model and uses per-call output buffers.
+        # ctypes releases the GIL, so threads can run the C calls in parallel
+        # without pickling the model or relying on the process start method.
         if self.svm_model.is_probability_model():
             # noinspection PyUnresolvedReferences
             if svm_type in [svm.NU_SVR, svm.EPSILON_SVR]:
@@ -394,7 +397,7 @@ class LibSvmClassifier (ClassifyDescriptorSupervised):
             else:
                 return parallel_map(single_pred, vec_mat,
                                     cores=n_jobs,
-                                    use_multiprocessing=True)
+                                    use_multiprocessing=False)
 
         else:
             # noinspection PyUnresolvedReferences
@@ -417,4 +420,4 @@ class LibSvmClassifier (ClassifyDescriptorSupervised):
             else:
                 return parallel_map(single_label, vec_mat,
                                     cores=n_jobs,
-                                    use_multiprocessing=True)
+                                    use_multiprocessing=False)
