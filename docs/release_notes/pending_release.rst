@@ -4,21 +4,5 @@ Pending Release Notes
 Updates / New Features
 ----------------------
 
-* Added official Python 3.14 support and testing, including optional classifiers.
-* Allowed NumPy 2 on Python 3.10–3.12 and required NumPy 2.3.2 or newer on
-  Python 3.14 for compatible wheels.
-* Required Python 3.14-compatible SciPy and scikit-learn releases for the
-  optional classifiers.
-* Required SMQTK-Core 0.22.0, SMQTK-Dataprovider 0.20.0 and SMQTK-Descriptors
-  0.21.0 for Python 3.14 support and NumPy 2 compatibility.
-
 Fixes
 -----
-
-* Used threads for parallel LibSVM predictions so native models do not need
-  to be pickled with Python 3.14's multiprocessing start method.
-* Updated vulnerable locked dependencies to patched releases and raised the
-  pytest and IPython minimums to exclude vulnerable releases.
-* Updated coverage's minimum version for Python 3.14 support.
-* Used Amazon ECR Public's mirror of Docker's official Python images in CI to
-  avoid Docker Hub's unauthenticated pull rate limit.
