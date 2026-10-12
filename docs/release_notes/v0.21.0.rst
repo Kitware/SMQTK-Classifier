@@ -1,6 +1,11 @@
 v0.21.0
 =======
 
+This release adds official Python 3.14 support and testing, including optional
+classifiers, with NumPy 2 compatibility on older supported Python versions.
+It also fixes parallel LibSVM prediction for Python 3.14, updates dependencies
+for security, and improves CI reliability.
+
 Updates / New Features
 ----------------------
 
